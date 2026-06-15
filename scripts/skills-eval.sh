@@ -62,17 +62,40 @@ fences_no_lang() {
     END { print n+0 }' "$1"
 }
 
-# broken relative markdown links in a file (ignoring links inside ``` fences)
-broken_links() {
+# GitHub-style heading slugs of a file (headings outside code fences)
+heading_slugs() {
+  awk '/^```/{inb=!inb; next} !inb && /^#+[[:space:]]/' "$1" \
+    | sed -E 's/^#+[[:space:]]+//' | tr 'A-Z' 'a-z' | sed -E 's/[^a-z0-9 -]//g; s/ +/-/g'
+}
+
+# Markdown link/file problems in a file (ignoring links inside ``` fences).
+# Echoes one finding per line: "ERR <kind> <detail>" or "WARN <kind> <detail>".
+file_link_problems() {
   local f="$1" dir; dir="$(dirname "$1")"
   awk '/^```/{inb=!inb; next} !inb' "$f" \
-    | grep -oE '\]\(([^)]+)\)' 2>/dev/null | sed -E 's/^\]\(//; s/\)$//' | while IFS= read -r tgt; do
-    case "$tgt" in
-      http*|\#*|mailto:*) continue;;
-    esac
-    tgt="${tgt%%#*}"; tgt="${tgt%% *}"; [ -z "$tgt" ] && continue
-    case "$tgt" in /*) path="$tgt";; *) path="$dir/$tgt";; esac
-    [ -e "$path" ] || echo "$tgt"
+    | grep -oE '\]\(([^)]+)\)' 2>/dev/null | sed -E 's/^\]\(//; s/\)$//' | while IFS= read -r raw; do
+    case "$raw" in http*|mailto:*) continue;; esac
+    local tgt="${raw%%#*}" frag=""
+    case "$raw" in *\#*) frag="${raw#*#}";; esac
+    tgt="${tgt%% *}"
+    if [ -z "$tgt" ]; then   # same-file anchor
+      [ -n "$frag" ] && { heading_slugs "$f" | grep -qx "$frag" || echo "ERR anchor #$frag"; }
+      continue
+    fi
+    case "$tgt" in *../../*) echo "WARN deep $tgt";; esac          # links should be one level deep
+    local path; case "$tgt" in /*) path="$tgt";; *) path="$dir/$tgt";; esac
+    if [ ! -e "$path" ]; then echo "ERR broken $tgt"; continue; fi
+    [ -n "$frag" ] && { heading_slugs "$path" | grep -qx "$frag" || echo "ERR anchor $tgt#$frag"; }
+    case "$tgt" in *.sh) [ -x "$path" ] || echo "WARN nonexec $tgt";; esac
+  done
+}
+
+# Supporting docs in a skill dir that nothing else in the dir links to.
+orphan_docs() {
+  local d="$1"
+  find "$d" -maxdepth 2 -name '*.md' ! -iname 'skill.md' ! -iname 'readme.md' 2>/dev/null | while IFS= read -r doc; do
+    local bn; bn="$(basename "$doc")"
+    grep -rlF "$bn" "$d" --include='*.md' 2>/dev/null | grep -qv "^$doc$" || echo "WARN orphan ${doc#"$ROOT"/}"
   done
 }
 
@@ -205,15 +228,28 @@ lint() {
 }
 
 links() {
-  echo "$(green "links") — broken intra-repo markdown links"
-  local bad=0
+  echo "$(green "links") — markdown link & file hygiene"
+  local errs=0
+  # per-file link/anchor/depth/exec checks (our docs, not vendored)
   while IFS= read -r f; do
-    while IFS= read -r missing; do [ -z "$missing" ] && continue
-      echo "  $(red "✗") ${f#"$ROOT"/} -> $missing"; bad=$((bad+1))
-    done < <(broken_links "$f")
-  done < <(find "$ROOT/skills" -name '*.md' -not -path '*/deprecated/*' 2>/dev/null)
-  echo "links: $bad broken"
-  [ "$bad" -gt 0 ] && return 1 || return 0
+    while IFS= read -r line; do [ -z "$line" ] && continue
+      local kind detail; kind="$(echo "$line" | awk '{print $1,$2}')"; detail="${line#* * }"
+      case "$line" in
+        ERR\ broken*) echo "  $(red "✗ broken") ${f#"$ROOT"/} -> $detail"; errs=$((errs+1));;
+        ERR\ anchor*) echo "  $(red "✗ anchor") ${f#"$ROOT"/} -> $detail"; errs=$((errs+1));;
+        WARN\ deep*)  warn "${f#"$ROOT"/}: link not one level deep -> $detail";;
+        WARN\ nonexec*) warn "${f#"$ROOT"/}: referenced script not executable -> $detail";;
+      esac
+    done < <(file_link_problems "$f")
+  done < <(find "$ROOT/skills" "$ROOT/evals" "$ROOT/sources" -name '*.md' -not -path '*/deprecated/*' 2>/dev/null; ls "$ROOT"/*.md 2>/dev/null)
+  # orphan supporting docs (fork skills only)
+  while IFS= read -r d; do [ -z "$d" ] && continue
+    while IFS= read -r line; do [ -z "$line" ] && continue
+      warn "orphan supporting doc: ${line#WARN orphan }"
+    done < <(orphan_docs "$d")
+  done < <(fork)
+  echo "links: $(red "$errs error(s)"), see warnings above"
+  [ "$errs" -gt 0 ] && return 1 || return 0
 }
 
 metrics() {
