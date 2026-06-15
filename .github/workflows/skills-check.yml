@@ -19,5 +19,7 @@ jobs:
         run: make check
       - name: Broken-link check
         run: make links
+      - name: Vendor integrity (locks + drift)
+        run: make vendor-check
       - name: Metrics report
         run: make metrics >> "$GITHUB_STEP_SUMMARY"
