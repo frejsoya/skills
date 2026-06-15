@@ -5,8 +5,8 @@ Shared vocabulary for every suggestion this skill makes. Use these terms exactly
 ## Terms
 
 **Module**
-Anything with an interface and an implementation. Deliberately scale-agnostic — applies equally to a function, class, package, or tier-spanning slice.
-_Avoid_: unit, component, service.
+Anything with an interface and an implementation. Deliberately scale-agnostic — applies equally to a function, a module/functor, a library, or a tier-spanning slice.
+_Avoid_: unit, component, service, class.
 
 **Interface**
 Everything a caller must know to use the module correctly. Includes the type signature, but also invariants, ordering constraints, error modes, required configuration, and performance characteristics.
@@ -31,6 +31,26 @@ What callers get from depth. More capability per unit of interface they have to 
 **Locality**
 What maintainers get from depth. Change, bugs, knowledge, and verification concentrate at one place rather than spreading across callers. Fix once, fixed everywhere.
 
+## In OCaml
+
+The abstract terms above land on concrete language constructs. OCaml's module
+system is one of the cleanest embodiments of this vocabulary, so use it directly:
+
+| Term | OCaml construct |
+|---|---|
+| **Module** | A compilation unit (`foo.ml` + `foo.mli`), a `module`, or a `functor`. |
+| **Interface** | The `.mli` / `module type` signature **plus** the contract: invariants the abstract `type t` upholds, exceptions raised, `result`/`option` error modes, evaluation order, complexity. The signature names only part of the Interface — the rest can be made explicit and machine-checkable with [Gospel](https://github.com/ocaml-gospel/gospel) contracts (see `tdd/contracts-gospel.md`) instead of living only in prose. |
+| **Implementation** | The `.ml` body behind the signature. |
+| **Depth** | A short `.mli` over a substantial `.ml`. An abstract `type t` that hides a rich representation is the canonical deep move. |
+| **Seam** | A `functor` parameter, a `module type` a caller is written against, or a first-class module / function argument. Behaviour varies by which module you apply or pass — without editing the consumer. |
+| **Adapter** | A concrete `module` that satisfies a `module type` at a seam: `module Pg : STORE` vs `module Mem : STORE`. |
+
+**Tells that a module is shallow in OCaml:** the `.mli` leaks the concrete
+representation (`type t = { ... }` instead of `type t`); every value in the `.ml`
+is re-exported one-to-one; the signature is as long as the body. **Tells that a
+seam is real:** at least two modules satisfy the same `module type` (production +
+test fake) — one functor instantiation is a hypothetical seam, two is a real one.
+
 ## Principles
 
 - **Depth is a property of the interface, not the implementation.** A deep module can be internally composed of small, mockable, swappable parts — they just aren't part of the interface. A module can have **internal seams** (private to its implementation, used by its own tests) as well as the **external seam** at its interface.
@@ -49,5 +69,5 @@ What maintainers get from depth. Change, bugs, knowledge, and verification conce
 ## Rejected framings
 
 - **Depth as ratio of implementation-lines to interface-lines** (Ousterhout): rewards padding the implementation. We use depth-as-leverage instead.
-- **"Interface" as the TypeScript `interface` keyword or a class's public methods**: too narrow — interface here includes every fact a caller must know.
+- **"Interface" as just the OCaml `.mli` signature or a module's exposed values**: too narrow — interface here includes every fact a caller must know (invariants, error behavior, ordering), not only what the signature names.
 - **"Boundary"**: overloaded with DDD's bounded context. Say **seam** or **interface**.

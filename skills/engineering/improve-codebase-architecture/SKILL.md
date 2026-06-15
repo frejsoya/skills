@@ -11,7 +11,7 @@ Surface architectural friction and propose **deepening opportunities** — refac
 
 Use these terms exactly in every suggestion. Consistent language is the point — don't drift into "component," "service," "API," or "boundary." Full definitions in [LANGUAGE.md](LANGUAGE.md).
 
-- **Module** — anything with an interface and an implementation (function, class, package, slice).
+- **Module** — anything with an interface and an implementation (function, module/functor, library, slice).
 - **Interface** — everything a caller must know to use the module: types, invariants, error modes, ordering, config. Not just the type signature.
 - **Implementation** — the code inside.
 - **Depth** — leverage at the interface: a lot of behaviour behind a small interface. **Deep** = high leverage. **Shallow** = interface nearly as complex as the implementation.

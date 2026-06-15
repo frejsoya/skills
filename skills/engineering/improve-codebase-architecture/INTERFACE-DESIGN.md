@@ -31,7 +31,7 @@ Include both [LANGUAGE.md](LANGUAGE.md) vocabulary and CONTEXT.md vocabulary in 
 
 Each sub-agent outputs:
 
-1. Interface (types, methods, params — plus invariants, ordering, error modes)
+1. Interface (the `.mli` — types, values, params — plus invariants, ordering, error modes)
 2. Usage example showing how callers use it
 3. What the implementation hides behind the seam
 4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
