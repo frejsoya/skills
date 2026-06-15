@@ -37,7 +37,7 @@ Treat the loop as a product. Once you have _a_ loop, ask:
 
 - Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)
 - Can I make the signal sharper? (Assert on the specific symptom, not "didn't crash".)
-- Can I make it more deterministic? (Pass an `Eio.Time.clock` (or a `mock_clock`) instead of reading wall-clock directly, seed with a fixed `Random.State.t`, isolate the filesystem and network via Eio capabilities. Set `OCAMLRUNPARAM=b` so every failure carries a backtrace.)
+- Can I make it more deterministic? (Take a clock capability the test can swap for `Eio_mock.Clock` instead of reading wall-clock directly, seed with a fixed `Random.State.t`, isolate the filesystem and network via Eio capabilities. Set `OCAMLRUNPARAM=b` so every failure carries a backtrace.)
 
 A 30-second flaky loop is barely better than no loop. A 2-second deterministic loop is a debugging superpower.
 
