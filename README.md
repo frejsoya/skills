@@ -41,6 +41,28 @@ My agent skills that I use every day to do real engineering - not vibe coding.
 > [`tmattio/ocaml-mcp`](https://github.com/tmattio/ocaml-mcp) (Dune + Merlin), or
 > bridge `ocaml-lsp-server` via a generic LSP→MCP adapter.
 
+## Using these skills
+
+Install every skill (ours + the vendored OCaml ones) into your agent by
+symlinking — the repo stays the source of truth, so editing a `SKILL.md` here is
+live immediately:
+
+```sh
+make install         # symlink all skills into your agent skills dir(s)
+make skills-status   # show what's installed and where it points
+make list-skills     # list every skill this repo provides
+make uninstall       # remove the symlinks this repo created
+```
+
+Install populates a shared store (`~/.agents/skills` by default) and ensures each
+agent dir (`~/.claude/skills`, `~/.pi/agent/skills`) forwards into it; any real
+directories it would replace are moved to a timestamped `.skills-backup-*`. It's
+idempotent — re-run after a `git pull` or `make vendor-update`. Override the
+target with `make install SKILLS_DIR=~/.claude/skills`, or skip the vendored
+skills with `INCLUDE_VENDOR=0`. Restart the agent to pick up changes.
+
+Run `make` with no target for the full command list.
+
 Developing real applications is hard. Approaches like GSD, BMAD, and Spec-Kit try to help by owning the process. But while doing so, they take away your control and make bugs in the process hard to resolve.
 
 These skills are designed to be small, easy to adapt, and composable. They work with any model. They're based on decades of engineering experience. Hack around with them. Make them your own. Enjoy.
