@@ -148,17 +148,28 @@ lint() {
     echo "$(dim "• $base")"
     [ -z "$md" ] && { err "$base: no SKILL.md"; continue; }
     name="$(fm_field "$md" name)"; desc="$(fm_field "$md" description)"
+    # frontmatter well-formedness (error): needs an opening + closing ---
+    [ "$(grep -cE '^---[[:space:]]*$' "$md")" -ge 2 ] || err "$base: missing/!closed YAML frontmatter"
     # structure (errors)
     [ -z "$name" ] && err "$base: frontmatter missing 'name'"
     [ -z "$desc" ] && err "$base: frontmatter missing 'description'"
     [ -n "$name" ] && [ "$name" != "$base" ] && err "$base: name '$name' != directory"
-    # description quality (warns) — skip trigger check for non-model-invoked skills
+    # unknown frontmatter keys (warn) — likely typos
+    awk '/^---[[:space:]]*$/{fm++; next} fm==1 && /^[a-zA-Z][a-zA-Z0-9_-]*:/{sub(/:.*/,""); print}' "$md" \
+      | while IFS= read -r k; do
+          case "$k" in name|description|disable-model-invocation|argument-hint) ;; \
+            *) warn "$base: unknown frontmatter key '$k'";; esac
+        done
+    # description quality (warns)
     if [ -n "$desc" ]; then
       local dmi; dmi="$(fm_field "$md" disable-model-invocation)"
       if [ "$dmi" != "true" ]; then
         echo "$desc" | grep -qiE 'use when|use this when|use for' || warn "$base: description has no 'Use when …' trigger"
       fi
       [ "${#desc}" -gt 1024 ] && warn "$base: description ${#desc} chars (> 1024)"
+      case "$desc" in [A-Z]*) ;; *) warn "$base: description should start with a capital";; esac
+      case "$desc" in *.) ;; *) warn "$base: description should end with a period";; esac
+      echo "$desc" | grep -qE '^(I|I'\''ve|We|My) ' && warn "$base: description is first-person (use third person)"
     fi
     # progressive disclosure (warn)
     local lines; lines="$(wc -l < "$md")"
@@ -170,6 +181,24 @@ lint() {
     grep -rnE '\bLwt\b|\bjest\b|\bvitest\b|\bpnpm\b|\.tsx|tsconfig' "$d" --include='*.md' 2>/dev/null \
       | sed "s#^$ROOT/##" | while IFS= read -r hit; do warn "$base: non-OCaml residue: $hit"; done
   done < <(fork)
+  # trigger-overlap heuristic (warn): descriptions sharing many significant words
+  # route ambiguously. O(n^2) over a small set.
+  echo "$(dim "• trigger overlap")"
+  local tmp; tmp="$(mktemp)"
+  while IFS= read -r d; do [ -z "$d" ] && continue
+    local b m dsc w; b="$(basename "$d")"; m="$(skillmd "$d")"; dsc="$(fm_field "$m" description)"
+    w="$(echo "$dsc" | tr 'A-Z' 'a-z' | grep -oE '[a-z]{5,}' \
+        | grep -vE '^(skill|skills|using|which|where|their|other|these|those|while|about|should|would|could|when|user|wants|mentions)$' \
+        | sort -u | tr '\n' ' ')"
+    echo "$b|$w" >> "$tmp"
+  done < <(fork)
+  awk -F'|' '{names[NR]=$1; words[NR]=$2} END{
+    for(i=1;i<=NR;i++)for(j=i+1;j<=NR;j++){
+      n=split(words[i],a," "); shared=0
+      for(k=1;k<=n;k++){if(a[k]=="")continue; if(index(" "words[j]" "," "a[k]" ")) shared++}
+      if(shared>=5) printf "OVERLAP %s ~ %s (%d shared)\n", names[i], names[j], shared
+    }}' "$tmp" | while IFS= read -r line; do warn "${line#OVERLAP }"; done
+  rm -f "$tmp"
   echo
   echo "lint: $(red "$ERRORS error(s)"), $(yellow "$WARNS warning(s)")"
   [ "$ERRORS" -gt 0 ] && return 1 || return 0
