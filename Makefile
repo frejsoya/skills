@@ -35,7 +35,7 @@ EVAL           := scripts/skills-eval.sh
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install uninstall skills-status list-skills check lint links metrics eval
+.PHONY: help install uninstall skills-status list-skills check lint links metrics eval integrity
 
 help:
 	@echo 'Skills repo — OCaml/FP agent skills'
@@ -48,6 +48,7 @@ help:
 	@echo '    vars: SKILLS_DIR=<dir> (default ~/.agents/skills), INCLUDE_VENDOR=0|1'
 	@echo
 	@echo 'Review suite (see evals/README.md):'
+	@echo '  make integrity       repo invariants (plugin.json/README/eval/names)'
 	@echo '  make check           lint: structural + hygiene checks (fails on error)'
 	@echo '  make links           report broken intra-repo markdown links'
 	@echo '  make metrics         per-skill size/trigger/code-block report'
@@ -71,6 +72,9 @@ skills-status:
 list-skills:
 	@$(INSTALL) list
 
+integrity:
+	@$(EVAL) integrity
+
 check lint:
 	@$(EVAL) lint
 
@@ -82,6 +86,9 @@ metrics:
 
 eval:
 	@$(EVAL) all
+
+# alias kept so `make check` in CI runs the full deterministic gate
+check-all: integrity check links
 
 VENDOR_NAME    := ocaml-claude-marketplace
 UPSTREAM_URL   := https://github.com/avsm/ocaml-claude-marketplace.git

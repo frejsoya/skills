@@ -7,10 +7,11 @@
 # The qualitative LLM-judge layer lives in evals/ (see evals/README.md).
 #
 # Usage:
+#   skills-eval.sh integrity # repo invariants (plugin.json/README/eval/names)
 #   skills-eval.sh lint      # exit 1 on any error
 #   skills-eval.sh metrics   # markdown report to stdout
 #   skills-eval.sh links     # exit 1 on broken links
-#   skills-eval.sh all       # lint + links + metrics
+#   skills-eval.sh all       # integrity + lint + links + metrics
 #
 # Lint/hygiene apply to the FORKED skills (skills/ — our diverged copy of
 # mattpocock/skills that we edit). VENDORED skills (vendor/, verbatim from avsm)
@@ -73,6 +74,71 @@ broken_links() {
     case "$tgt" in /*) path="$tgt";; *) path="$dir/$tgt";; esac
     [ -e "$path" ] || echo "$tgt"
   done
+}
+
+# Tier 1 — repo-integrity invariants (what CLAUDE.md mandates but nothing checked)
+integrity() {
+  echo "$(green "integrity") — repo invariants"
+  local plugin="$ROOT/.claude-plugin/plugin.json" readme="$ROOT/README.md"
+
+  # 1. plugin.json entries resolve to a real skill dir
+  echo "$(dim "• plugin.json ↔ filesystem")"
+  grep -oE '"\./skills/[^"]+"' "$plugin" 2>/dev/null | tr -d '"' | while IFS= read -r rel; do
+    [ -f "$ROOT/$rel/SKILL.md" ] || err "plugin.json entry '$rel' has no SKILL.md"
+  done
+
+  # 2. promoted skills (engineering/productivity/misc) must be in plugin.json;
+  #    personal/ must NOT be. (CLAUDE.md)
+  echo "$(dim "• promotion rules (plugin.json + README)")"
+  while IFS= read -r d; do [ -z "$d" ] && continue
+    local base bucket; base="$(basename "$d")"; bucket="$(basename "$(dirname "$d")")"
+    local in_plugin in_readme
+    in_plugin=$(grep -qE "\"\./skills/$bucket/$base\"" "$plugin" && echo y || echo n)
+    in_readme=$(grep -qE "\(\./skills/$bucket/$base/SKILL\.md\)" "$readme" && echo y || echo n)
+    case "$bucket" in
+      engineering|productivity)   # auto-loaded buckets: required in plugin.json
+        [ "$in_plugin" = y ] || err "$base ($bucket): missing from plugin.json"
+        [ "$in_readme" = y ] || warn "$base ($bucket): not linked in top-level README.md";;
+      misc)                        # "rarely used": README expected, plugin optional
+        [ "$in_readme" = y ] || warn "$base (misc): not linked in top-level README.md"
+        [ "$in_plugin" = y ] || warn "$base (misc): not in plugin.json (misc is opt-in)";;
+      personal)                    # private: must NOT be promoted
+        [ "$in_plugin" = n ] || err "$base (personal): must NOT be in plugin.json"
+        [ "$in_readme" = n ] || warn "$base (personal): should not be promoted in README.md";;
+    esac
+  done < <(fork)
+
+  # 3. each bucket has a README listing every skill in it (CLAUDE.md)
+  echo "$(dim "• bucket READMEs")"
+  while IFS= read -r d; do [ -z "$d" ] && continue
+    local base bucketdir; base="$(basename "$d")"; bucketdir="$(dirname "$d")"
+    local breadme="$bucketdir/README.md"
+    if [ ! -f "$breadme" ]; then err "$(basename "$bucketdir")/: no bucket README.md"; continue; fi
+    grep -qE "\(\./$base/SKILL\.md\)" "$breadme" || warn "$base: not listed in $(basename "$bucketdir")/README.md"
+  done < <(fork)
+
+  # 4. eval-set integrity: every expected skill in trigger-cases exists
+  echo "$(dim "• eval-set references")"
+  local tc="$ROOT/evals/trigger-cases.md"
+  if [ -f "$tc" ]; then
+    grep -E '^\| *[0-9]+ *\|' "$tc" | awk -F'|' '{print $4}' | while IFS= read -r exp; do
+      exp="$(echo "$exp" | sed -E 's/^ *//; s/ *$//')"
+      case "$exp" in —*|""|"—") continue;; esac
+      local sk; sk="$(echo "$exp" | awk '{print $1}')"
+      find "$ROOT/skills" "$ROOT/vendor" -iname 'skill.md' -path "*/$sk/*" 2>/dev/null | grep -q . \
+        || err "trigger-cases: expected skill '$sk' not found on disk"
+    done
+  fi
+
+  # 5. name uniqueness across the install surface (collisions clobber symlinks)
+  echo "$(dim "• name uniqueness (fork + vendored)")"
+  { fork; vendored; } | xargs -n1 basename 2>/dev/null | sort | uniq -d | while IFS= read -r dup; do
+    [ -n "$dup" ] && err "duplicate skill name '$dup' (would clobber on install)"
+  done
+
+  echo
+  echo "integrity: $(red "$ERRORS error(s)"), $(yellow "$WARNS warning(s)")"
+  [ "$ERRORS" -gt 0 ] && return 1 || return 0
 }
 
 lint() {
@@ -148,9 +214,10 @@ metrics() {
 }
 
 case "$CMD" in
+  integrity) integrity;;
   lint)    lint;;
   links)   links;;
   metrics) metrics;;
-  all)     lint; r1=$?; echo; links; r2=$?; echo; metrics; [ $((r1+r2)) -eq 0 ];;
-  *)       sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//';;
+  all)     integrity; r0=$?; echo; lint; r1=$?; echo; links; r2=$?; echo; metrics; [ $((r0+r1+r2)) -eq 0 ];;
+  *)       sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//';;
 esac
