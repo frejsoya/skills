@@ -12,15 +12,16 @@
 #   skills-eval.sh links     # exit 1 on broken links
 #   skills-eval.sh all       # lint + links + metrics
 #
-# Lint/hygiene apply to *our* skills (skills/, minus deprecated). Vendored skills
-# are third-party — they're measured in metrics but never fail our lint.
+# Lint/hygiene apply to the FORKED skills (skills/ — our diverged copy of
+# mattpocock/skills that we edit). VENDORED skills (vendor/, verbatim from avsm)
+# are measured in metrics but never fail lint — fixes go upstream. See sources/.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CMD="${1:-help}"
 
-ours()   { find "$ROOT/skills"  -iname 'skill.md' -not -path '*/deprecated/*' -exec dirname {} \; 2>/dev/null | sort; }
-vendor() { [ -d "$ROOT/vendor" ] && find "$ROOT/vendor" -iname 'skill.md' -exec dirname {} \; 2>/dev/null | sort; }
+fork()     { find "$ROOT/skills"  -iname 'skill.md' -not -path '*/deprecated/*' -exec dirname {} \; 2>/dev/null | sort; }
+vendored() { [ -d "$ROOT/vendor" ] && find "$ROOT/vendor" -iname 'skill.md' -exec dirname {} \; 2>/dev/null | sort; }
 
 skillmd() { ls "$1"/SKILL.md "$1"/skill.md 2>/dev/null | head -1; }
 
@@ -75,7 +76,7 @@ broken_links() {
 }
 
 lint() {
-  echo "$(green "lint") — structural + hygiene (our skills)"
+  echo "$(green "lint") — structural + hygiene (forked skills in skills/)"
   while IFS= read -r d; do [ -z "$d" ] && continue
     local md name desc base; md="$(skillmd "$d")"; base="$(basename "$d")"
     echo "$(dim "• $base")"
@@ -99,10 +100,10 @@ lint() {
     # code fences without a language (warn)
     local nf; nf="$(fences_no_lang "$md")"
     [ "$nf" -gt 0 ] && warn "$base: $nf code block(s) without a language tag"
-    # OCaml hygiene (warn) — our skills should not carry Lwt or TS residue
+    # OCaml hygiene (warn) — forked skills should not carry Lwt or TS residue
     grep -rnE '\bLwt\b|\bjest\b|\bvitest\b|\bpnpm\b|\.tsx|tsconfig' "$d" --include='*.md' 2>/dev/null \
       | sed "s#^$ROOT/##" | while IFS= read -r hit; do warn "$base: non-OCaml residue: $hit"; done
-  done < <(ours)
+  done < <(fork)
   echo
   echo "lint: $(red "$ERRORS error(s)"), $(yellow "$WARNS warning(s)")"
   [ "$ERRORS" -gt 0 ] && return 1 || return 0
@@ -125,7 +126,7 @@ metrics() {
   echo
   echo "| skill | src | SKILL lines | files | bytes | code blks | desc len | trigger |"
   echo "|---|---|--:|--:|--:|--:|--:|:--:|"
-  local total=0 ours_n=0 vend_n=0 no_trig=0 big=0
+  local total=0 fork_n=0 vend_n=0 no_trig=0 big=0
   emit() {
     local d="$1" src="$2" md name desc lines files bytes blks dlen trig
     md="$(skillmd "$d")"; [ -z "$md" ] && return
@@ -140,10 +141,10 @@ metrics() {
     printf '| %s | %s | %s | %s | %sK | %s | %s | %s |\n' "$name" "$src" "$lines" "$files" "$bytes" "$blks" "$dlen" "$trig"
     total=$((total+1))
   }
-  while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" ours; ours_n=$((ours_n+1)); done < <(ours)
-  while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" vend; vend_n=$((vend_n+1)); done < <(vendor)
+  while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" fork; fork_n=$((fork_n+1)); done < <(fork)
+  while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" vend; vend_n=$((vend_n+1)); done < <(vendored)
   echo
-  echo "**Totals**: $total skills ($ours_n ours, $vend_n vendored) · $no_trig missing a trigger phrase · $big over 500 lines."
+  echo "**Totals**: $total skills ($fork_n forked from mattpocock, $vend_n vendored from avsm) · $no_trig missing a trigger phrase · $big over 500 lines."
 }
 
 case "$CMD" in

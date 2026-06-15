@@ -19,7 +19,7 @@ trigger) — fix the description, not the case. `—` means no skill should fire
 | 8 | "Break this plan into issues we can pick up." | to-issues |
 | 9 | "Triage the incoming bug reports." | triage |
 | 10 | "Let me play with this state machine before I commit to it." | prototype |
-| 11 | "Set up the issue tracker and project commands for these skills." | setup-matt-pocock-skills |
+| 11 | "Set up the issue tracker / project commands for these skills." | — (no skill; configured in AGENTS.md/CLAUDE.md) |
 | 12 | "Add a pre-commit hook that runs ocamlformat and the tests." | setup-pre-commit |
 | 13 | "Stress-test my design — grill me on it." | grill-me |
 | 14 | "Compact this session so another agent can continue." | handoff |

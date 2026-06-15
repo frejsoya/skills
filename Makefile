@@ -20,17 +20,15 @@
 # Skip the vendored OCaml skills with INCLUDE_VENDOR=0.
 #
 # ---------------------------------------------------------------------------
-# Vendoring of third-party OCaml agent skills.
+# Sources (see sources/README.md)
+# ---------------------------------------------------------------------------
 #
-# We vendor Anil Madhavapeddy's `ocaml-dev` plugin (avsm/ocaml-claude-marketplace)
-# alongside our own skills so the OCaml *domain* skills (eio, result, testing,
-# code-style, memtrace, fuzz, ...) sit next to our engineering *workflow* skills.
-#
-# Usage:
-#   make vendor-update           # pull latest upstream main, re-sync, update lock
-#   make vendor-update REF=<sha> # pin to a specific upstream commit
-#   make vendor-diff             # show what upstream changed vs our vendored copy
-#   make vendor-status           # print pinned commit + whether upstream moved
+# Every skill is external. They differ by edit policy:
+#   - skills/  = our DIVERGED FORK of mattpocock/skills (OCaml-adapted; we edit).
+#                Update by merging the `upstream` remote.  `make fork-status`.
+#   - vendor/  = VENDORED VERBATIM from avsm/ocaml-claude-marketplace (pinned,
+#                never hand-edited).  `make vendor-update` / `vendor-diff`.
+# Provenance + locks for both live under sources/.
 
 INSTALL        := scripts/install-skills.sh
 EVAL           := scripts/skills-eval.sh
@@ -55,10 +53,11 @@ help:
 	@echo '  make metrics         per-skill size/trigger/code-block report'
 	@echo '  make eval            check + links + metrics'
 	@echo
-	@echo 'Vendored upstream skills:'
-	@echo '  make vendor-update   pull latest avsm/ocaml-dev, re-sync, update lock'
-	@echo '  make vendor-diff     show what upstream changed vs our copy'
-	@echo '  make vendor-status   print the pinned upstream commit'
+	@echo 'Sources (see sources/README.md):'
+	@echo '  make fork-status     how far skills/ is behind mattpocock/skills upstream'
+	@echo '  make vendor-update   re-sync vendored avsm/ocaml-dev to latest, update lock'
+	@echo '  make vendor-diff     show what avsm changed vs our pinned copy'
+	@echo '  make vendor-status   print the pinned avsm commit'
 
 install:
 	@$(INSTALL) install "$(SKILLS_DIR)"
@@ -88,14 +87,27 @@ VENDOR_NAME    := ocaml-claude-marketplace
 UPSTREAM_URL   := https://github.com/avsm/ocaml-claude-marketplace.git
 UPSTREAM_SUB   := plugins/ocaml-dev
 VENDOR_DIR     := vendor/$(VENDOR_NAME)/ocaml-dev
-LOCK           := vendor/$(VENDOR_NAME).lock
+LOCK           := sources/$(VENDOR_NAME).lock
+FORK_LOCK      := sources/mattpocock-skills.lock
 CACHE          := .vendor-cache/$(VENDOR_NAME)
 REF            ?= origin/main
 
 # rsync flags: mirror upstream subdir, drop VCS noise.
 RSYNC_FLAGS := -a --delete --exclude '.git'
 
-.PHONY: vendor-update vendor-diff vendor-status _vendor-fetch
+.PHONY: vendor-update vendor-diff vendor-status fork-status _vendor-fetch
+
+fork-status:
+	@git fetch --quiet upstream 2>/dev/null || true; \
+	 fp=$$(awk '/^fork-point:/{print $$2}' "$(FORK_LOCK)" 2>/dev/null); \
+	 latest=$$(git rev-parse upstream/main 2>/dev/null); \
+	 echo "skills/ is a diverged fork of mattpocock/skills."; \
+	 echo "  fork-point: $$fp"; echo "  upstream main: $$latest"; \
+	 if [ -n "$$fp" ] && [ "$$fp" != "$$latest" ]; then \
+	   n=$$(git rev-list --count "$$fp"..upstream/main 2>/dev/null); \
+	   echo "  upstream is $$n commit(s) ahead of our fork-point."; \
+	   echo "  pull with: git merge upstream/main  (then resolve + update $(FORK_LOCK))"; \
+	 else echo "  up to date with upstream main."; fi
 
 _vendor-fetch:
 	@mkdir -p $(dir $(CACHE))
@@ -114,8 +126,8 @@ vendor-update: _vendor-fetch
 	@sha=$$(git -C "$(CACHE)" rev-parse HEAD); \
 	 date=$$(git -C "$(CACHE)" log -1 --format='%ci' HEAD); \
 	 subj=$$(git -C "$(CACHE)" log -1 --format='%s' HEAD); \
-	 printf 'upstream: %s\nsubdir:   %s\ncommit:   %s\ndate:     %s\nsubject:  %s\n' \
-	   "$(UPSTREAM_URL)" "$(UPSTREAM_SUB)" "$$sha" "$$date" "$$subj" > "$(LOCK)"; \
+	 printf 'upstream: %s\nsubdir:   %s\npolicy:   vendored verbatim (pinned; never hand-edited)\nlocation: %s\nupdate:   make vendor-update\ncommit:   %s\ndate:     %s\nsubject:  %s\n' \
+	   "$(UPSTREAM_URL)" "$(UPSTREAM_SUB)" "$(VENDOR_DIR)/" "$$sha" "$$date" "$$subj" > "$(LOCK)"; \
 	 echo ">> vendored $(VENDOR_DIR) @ $$sha"; \
 	 echo ">> wrote $(LOCK)"
 
