@@ -1,91 +1,94 @@
 ---
 name: setup-pre-commit
-description: Set up Husky pre-commit hooks with lint-staged (Prettier), type checking, and tests in the current repo. Use when user wants to add pre-commit hooks, set up Husky, configure lint-staged, or add commit-time formatting/typechecking/testing.
+description: Set up a git pre-commit hook for an OCaml/dune project that runs ocamlformat, dune build, and dune test before each commit. Use when user wants to add pre-commit hooks, enforce ocamlformat, or add commit-time formatting/build/test checks.
 ---
 
-# Setup Pre-Commit Hooks
+# Setup Pre-Commit Hooks (OCaml)
 
 ## What This Sets Up
 
-- **Husky** pre-commit hook
-- **lint-staged** running Prettier on all staged files
-- **Prettier** config (if missing)
-- **typecheck** and **test** scripts in the pre-commit hook
+- A git **pre-commit hook** (plain `.git/hooks/pre-commit`, no extra runtime)
+- **ocamlformat** check on staged files (fails the commit if anything is unformatted)
+- **dune build** (the type-checker is the first line of defense)
+- **dune test** (`dune runtest`)
 
 ## Steps
 
-### 1. Detect package manager
+### 1. Detect the project shape
 
-Check for `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), `yarn.lock` (yarn), `bun.lockb` (bun). Use whichever is present. Default to npm if unclear.
+Confirm it's a dune project: look for `dune-project` at the repo root. Note the
+package manager in use — **opam** (`*.opam`, `_opam/`) or **dune-project**
+dependencies. If there's no `dune-project`, ask the user before proceeding.
 
-### 2. Install dependencies
+### 2. Ensure ocamlformat is available
 
-Install as devDependencies:
-
-```
-husky lint-staged prettier
-```
-
-### 3. Initialize Husky
-
-```bash
-npx husky init
-```
-
-This creates `.husky/` dir and adds `prepare: "husky"` to package.json.
-
-### 4. Create `.husky/pre-commit`
-
-Write this file (no shebang needed for Husky v9+):
+Check for a `.ocamlformat` file at the repo root. If missing, create a minimal one
+(pin the version so CI and local agree):
 
 ```
-npx lint-staged
-npm run typecheck
-npm run test
+version = 0.27.0
+profile = default
 ```
 
-**Adapt**: Replace `npm` with detected package manager. If repo has no `typecheck` or `test` script in package.json, omit those lines and tell the user.
+Make sure the tool is installed: `opam install ocamlformat` (or it's in the
+project's dev dependencies). Tell the user if it isn't installed.
 
-### 5. Create `.lintstagedrc`
+### 3. Create `.git/hooks/pre-commit`
 
-```json
-{
-  "*": "prettier --ignore-unknown --write"
-}
+Write this file and make it executable (`chmod +x .git/hooks/pre-commit`):
+
+```sh
+#!/bin/sh
+set -e
+
+# 1. Format check on staged .ml/.mli files only (fast)
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.mli?$' || true)
+if [ -n "$staged" ]; then
+  for f in $staged; do
+    if ! ocamlformat --check "$f" >/dev/null 2>&1; then
+      echo "✗ $f is not formatted. Run: dune fmt" >&2
+      exit 1
+    fi
+  done
+fi
+
+# 2. Build (type-check) and 3. test
+dune build
+dune runtest
 ```
 
-### 6. Create `.prettierrc` (if missing)
+**Adapt**: If the project has no tests yet, omit the `dune runtest` line and tell
+the user. If the repo is large and `dune build`/`dune runtest` are slow, mention
+that the hook may take a while and offer to scope it down.
 
-Only create if no Prettier config exists. Use these defaults:
+### 4. Prefer `dune fmt` for fixing
 
-```json
-{
-  "useTabs": false,
-  "tabWidth": 2,
-  "printWidth": 80,
-  "singleQuote": false,
-  "trailingComma": "es5",
-  "semi": true,
-  "arrowParens": "always"
-}
-```
+Tell the user: when the hook rejects a commit, run `dune fmt` (or
+`dune build @fmt --auto-promote`) to auto-format, then re-stage and commit.
 
-### 7. Verify
+> Note: `.git/hooks/` is **not** version-controlled. If the team wants the hook
+> shared, commit the script to `scripts/pre-commit` and either symlink it
+> (`ln -sf ../../scripts/pre-commit .git/hooks/pre-commit`) or set
+> `git config core.hooksPath scripts/hooks`. Recommend this for multi-dev repos.
 
-- [ ] `.husky/pre-commit` exists and is executable
-- [ ] `.lintstagedrc` exists
-- [ ] `prepare` script in package.json is `"husky"`
-- [ ] `prettier` config exists
-- [ ] Run `npx lint-staged` to verify it works
+### 5. Verify
 
-### 8. Commit
+- [ ] `.git/hooks/pre-commit` exists and is executable
+- [ ] `.ocamlformat` exists at the repo root
+- [ ] `ocamlformat`, `dune` are available on PATH (`dune --version`)
+- [ ] Run `dune build && dune runtest` once manually to confirm a clean baseline
 
-Stage all changed/created files and commit with message: `Add pre-commit hooks (husky + lint-staged + prettier)`
+### 6. Commit
 
-This will run through the new pre-commit hooks — a good smoke test that everything works.
+Stage the changed/created files and commit with message:
+`Add pre-commit hook (ocamlformat + dune build + test)`.
+
+This runs through the new hook — a good smoke test that everything works.
 
 ## Notes
 
-- Husky v9+ doesn't need shebangs in hook files
-- `prettier --ignore-unknown` skips files Prettier can't parse (images, etc.)
-- The pre-commit runs lint-staged first (fast, staged-only), then full typecheck and tests
+- The hook builds before testing because in OCaml the type-checker catches most
+  errors; a failing `dune build` should stop the commit immediately.
+- `ocamlformat --check` only inspects formatting; it never rewrites files, so the
+  hook stays read-only and predictable.
+- For shared/CI parity, pin the ocamlformat `version` in `.ocamlformat`.
