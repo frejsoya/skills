@@ -7,7 +7,7 @@ description: Disciplined diagnosis loop for hard bugs and performance regression
 
 A discipline for hard bugs. Skip phases only when explicitly justified.
 
-When exploring the codebase, use the project's domain glossary to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
+When exploring the codebase, use the project's domain glossary to get a clear mental model of the relevant modules, and check ADRs in the area you're touching. For the build/test/format commands your feedback loop will run, read `docs/agents/commands.md` if it exists; otherwise use the `dune` defaults referenced below.
 
 ## Phase 1 — Build a feedback loop
 
@@ -17,9 +17,10 @@ Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to give
 
 ### Ways to construct one — try them in roughly this order
 
-1. **Failing test** at whatever seam reaches the bug — unit, integration, e2e.
+1. **Failing test** at whatever seam reaches the bug — Alcotest/OUnit, integration, e2e. `dune runtest` (optionally `--watch` for a tight loop).
 2. **Curl / HTTP script** against a running dev server.
-3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.
+3. **CLI invocation** with a fixture input (`dune exec ./bin/foo.exe -- ...`), diffing stdout against a known-good snapshot. `ppx_expect`/cram (`dune test`) tests are exactly this shape.
+3b. **`utop` / `dune utop <lib>`** — load the library and call the suspect function by hand with crafted inputs. Often the fastest loop for a pure function.
 4. **Headless browser script** (Playwright / Puppeteer) — drives the UI, asserts on DOM/console/network.
 5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.
 6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.
@@ -36,7 +37,7 @@ Treat the loop as a product. Once you have _a_ loop, ask:
 
 - Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)
 - Can I make the signal sharper? (Assert on the specific symptom, not "didn't crash".)
-- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)
+- Can I make it more deterministic? (Pass an `Eio.Time.clock` (or a `mock_clock`) instead of reading wall-clock directly, seed with a fixed `Random.State.t`, isolate the filesystem and network via Eio capabilities. Set `OCAMLRUNPARAM=b` so every failure carries a backtrace.)
 
 A 30-second flaky loop is barely better than no loop. A 2-second deterministic loop is a debugging superpower.
 
@@ -80,13 +81,15 @@ Each probe must map to a specific prediction from Phase 3. **Change one variable
 
 Tool preference:
 
-1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.
-2. **Targeted logs** at the boundaries that distinguish hypotheses.
+1. **REPL inspection** — `utop`/`dune utop` to poke the function directly, or `ocamldebug` for stepping (with `dune` use `dune exec -- ocamldebug`; remember it needs bytecode, so a `(modes byte_complete exe)` target). One breakpoint beats ten logs.
+2. **Targeted logs** at the boundaries that distinguish hypotheses — `Fmt.epr` (to stderr) / `Fmt.pr` (to stdout), or a `Logs.debug` call if the project uses `logs`.
 3. Never "log everything and grep".
+
+**Turn on backtraces.** Run with `OCAMLRUNPARAM=b` (or `Printexc.record_backtrace true` at startup) so an exception tells you *where* it was raised, not just that it was. For a swallowed exception, log `Printexc.get_backtrace ()` in the handler.
 
 **Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.
 
-**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.
+**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (`Unix.gettimeofday` deltas, the `landmarks` ppx, `perf`/`valgrind --tool=callgrind`, or `Gc.stat`/`Gc.print_stat` when the suspect is allocation/major-GC pressure), then bisect. Measure first, fix second. For OCaml specifically, an unexpected regression is often **extra allocation** (intermediate lists, boxed floats, closures in a hot loop) — check minor-collection counts before chasing logic.
 
 ## Phase 5 — Fix + regression test
 
