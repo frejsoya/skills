@@ -14,6 +14,33 @@
 
 My agent skills that I use every day to do real engineering - not vibe coding.
 
+> **Fork note — OCaml / functional-programming flavor.** This fork adapts the
+> engineering skills away from TypeScript/Node defaults toward OCaml + dune:
+> - **tdd** examples use Alcotest + `dune runtest`, with `.mli` signatures,
+>   functors, and first-class modules for dependency injection.
+> - **setup-pre-commit** installs a plain git hook running ocamlformat +
+>   `dune build` + `dune runtest` (no Husky/lint-staged/Prettier).
+> - **prototype** uses `dune exec` task-runner conventions and OCaml idioms.
+> - **improve-codebase-architecture** / **review** reference `.mli`, dune, and
+>   ocamlformat config instead of `tsconfig`/eslint/prettier.
+> - `migrate-to-shoehorn` and `scaffold-exercises` are TypeScript/course-specific
+>   and are marked not-applicable.
+>
+> Upstream is tracked as the `upstream` remote for syncing future changes.
+>
+> **Complementary OCaml skills (vendored).** These skills cover engineering
+> *discipline* (tdd, diagnose, triage, architecture). For OCaml *domain* skills
+> (eio, effects, result, cmdliner, jsont, fuzz, memtrace, testing, code-style,
+> project-setup, oxcaml) we vendor Anil Madhavapeddy's
+> [`ocaml-dev` plugin](https://github.com/avsm/ocaml-claude-marketplace) under
+> [`vendor/`](./vendor/). Update/diff it with `make vendor-update` /
+> `make vendor-diff` (see [vendor/README.md](./vendor/README.md)).
+>
+> **Recommended infrastructure.** Install an OCaml MCP server so the agent gets
+> type-aware navigation and build diagnostics instead of shelling out blind:
+> [`tmattio/ocaml-mcp`](https://github.com/tmattio/ocaml-mcp) (Dune + Merlin), or
+> bridge `ocaml-lsp-server` via a generic LSP→MCP adapter.
+
 Developing real applications is hard. Approaches like GSD, BMAD, and Spec-Kit try to help by owning the process. But while doing so, they take away your control and make bugs in the process hard to resolve.
 
 These skills are designed to be small, easy to adapt, and composable. They work with any model. They're based on decades of engineering experience. Hack around with them. Make them your own. Enjoy.
