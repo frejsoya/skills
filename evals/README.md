@@ -19,6 +19,28 @@ LLM layers before a release or after a big edit.
 These also catch *integrity* problems — a missing skill directory shows up as a
 count drop in `metrics` (this is how we caught a working-tree regression once).
 
+### OCaml code blocks — `make check-ocaml` (opt-in) and MDX
+
+Two complementary checks for the OCaml in our examples:
+
+- **`make check-ocaml`** — *syntax-checks* `ocaml` code blocks via `ocamlformat`
+  (or `ocamlc -stop-after parsing`). Illustrative **fragments** (those containing
+  `...`, `<placeholders>`, or "pseudo-code") are skipped — only self-contained
+  blocks are parsed. Opt-in because it needs an OCaml toolchain; it skips cleanly
+  if none is installed, so it's not in the CI gate.
+
+- **MDX** (`ocaml-mdx`, via dune's `(mdx)` stanza) — the way to *execute and
+  verify* runnable blocks (compile + check output), not just parse them. It only
+  works on blocks authored as runnable (compilable, with expected output and a
+  context/prelude for placeholder types like `user`/`id`). To adopt it:
+  1. Mark a block runnable by giving it real, self-contained code (no `...`);
+     mark everything else `<!-- $MDX skip -->` so MDX ignores fragments.
+  2. Add a tiny dune harness (a `dune-project` + a prelude defining shared types
+     and an `(mdx (files …))` stanza pointing at the skill `.md`), then
+     `dune runtest` verifies the blocks.
+  This repo is markdown-only today, so MDX is the recommended path *when* a skill
+  grows genuinely runnable examples — `check-ocaml` covers the fragment case now.
+
 ## 2. Routing eval — [`trigger-cases.md`](./trigger-cases.md)
 
 The description is the only thing the agent sees when choosing a skill, so the

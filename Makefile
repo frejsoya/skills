@@ -35,7 +35,7 @@ EVAL           := scripts/skills-eval.sh
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install uninstall skills-status list-skills check lint links metrics eval integrity
+.PHONY: help install uninstall skills-status list-skills check lint links metrics eval integrity check-ocaml
 
 help:
 	@echo 'Skills repo — OCaml/FP agent skills'
@@ -53,6 +53,7 @@ help:
 	@echo '  make links           report broken intra-repo markdown links'
 	@echo '  make metrics         per-skill size/trigger/code-block report'
 	@echo '  make eval            check + links + metrics'
+	@echo '  make check-ocaml     parse ocaml code blocks (opt-in; needs OCaml toolchain)'
 	@echo
 	@echo 'Sources (see sources/README.md):'
 	@echo '  make fork-status     how far skills/ is behind mattpocock/skills upstream'
@@ -86,6 +87,9 @@ metrics:
 
 eval:
 	@$(EVAL) all
+
+check-ocaml:
+	@$(EVAL) check-ocaml
 
 # alias kept so `make check` in CI runs the full deterministic gate
 check-all: integrity check links
