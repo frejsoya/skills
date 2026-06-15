@@ -55,6 +55,13 @@ ERRORS=0; WARNS=0
 err()  { ERRORS=$((ERRORS+1)); echo "  $(red "✗ error") $1"; }
 warn() { WARNS=$((WARNS+1));   echo "  $(yellow "⚠ warn ") $1"; }
 
+# lines inside ```ocaml / ```ml fenced blocks
+ocaml_code() {
+  awk '
+    /^```/ { if (inb) { inb=0; next } if ($0 ~ /^```(ocaml|ml)([[:space:]]|$)/) inb=1; next }
+    inb { print }' "$1"
+}
+
 # count fenced code blocks opened without a language tag
 fences_no_lang() {
   awk '
@@ -200,9 +207,14 @@ lint() {
     # code fences without a language (warn)
     local nf; nf="$(fences_no_lang "$md")"
     [ "$nf" -gt 0 ] && warn "$base: $nf code block(s) without a language tag"
-    # OCaml hygiene (warn) — forked skills should not carry Lwt or TS residue
+    # non-OCaml residue, whole file (warn) — Lwt/TS tooling shouldn't appear at all
     grep -rnE '\bLwt\b|\bjest\b|\bvitest\b|\bpnpm\b|\.tsx|tsconfig' "$d" --include='*.md' 2>/dev/null \
       | sed "s#^$ROOT/##" | while IFS= read -r hit; do warn "$base: non-OCaml residue: $hit"; done
+    # OCaml anti-patterns, code blocks only (warn) — avoid prose false-positives
+    for omd in "$d"/*.md; do [ -f "$omd" ] || continue
+      ocaml_code "$omd" | grep -nE 'Obj\.magic|Printf\.|open[[:space:]]+Lwt' \
+        | while IFS= read -r hit; do warn "$base: OCaml anti-pattern in $(basename "$omd") code: $hit"; done
+    done
   done < <(fork)
   # trigger-overlap heuristic (warn): descriptions sharing many significant words
   # route ambiguously. O(n^2) over a small set.
@@ -278,11 +290,52 @@ metrics() {
   echo "**Totals**: $total skills ($fork_n forked from mattpocock, $vend_n vendored from avsm) · $no_trig missing a trigger phrase · $big over 500 lines."
 }
 
+# Tier 4 #14 — syntax-check ocaml code blocks (opt-in; needs a toolchain).
+# Illustrative *fragments* (containing `...`, `<placeholders>`, "pseudo-code")
+# are skipped — only self-contained blocks are parsed. To *execute* runnable
+# blocks (compile + verify output), use MDX (see evals/README.md).
+CHK_OK=0; CHK_FAIL=0; CHK_SKIP=0
+check_ocaml() {
+  echo "$(green "check-ocaml") — syntax of ocaml code blocks (fragments skipped)"
+  local tool flag_impl flag_intf
+  if command -v ocamlformat >/dev/null 2>&1; then tool=ocamlformat
+  elif command -v ocamlc >/dev/null 2>&1; then tool=ocamlc
+  else echo "  $(yellow "skipped") — no ocamlformat/ocamlc on PATH (install OCaml to enable)"; return 0; fi
+  command -v mdx >/dev/null 2>&1 && echo "  $(dim "mdx present — see evals/README.md to verify runnable blocks")"
+  local tmp; tmp="$(mktemp -d)"
+  parse_block() { # $1 content  $2 src-label  $3 block-no
+    case "$1" in *...*|*"pseudo"*) CHK_SKIP=$((CHK_SKIP+1)); return;; esac
+    printf '%s' "$1" | grep -qE '<[a-zA-Z_]+>' && { CHK_SKIP=$((CHK_SKIP+1)); return; }
+    local ext f; if printf '%s' "$1" | grep -qE '^[[:space:]]*val ' && ! printf '%s' "$1" | grep -qE '^[[:space:]]*let '; then ext=mli; else ext=ml; fi
+    f="$tmp/blk.$ext"; printf '%s\n' "$1" > "$f"
+    if [ "$tool" = ocamlformat ]; then
+      ocamlformat --enable-outside-detected-project "$f" >/dev/null 2>"$tmp/e"
+    else ocamlc -stop-after parsing "$f" >/dev/null 2>"$tmp/e"; fi
+    if [ $? -eq 0 ]; then CHK_OK=$((CHK_OK+1)); else CHK_FAIL=$((CHK_FAIL+1)); warn "$2 block $3: parse error — $(head -1 "$tmp/e")"; fi
+  }
+  while IFS= read -r d; do [ -z "$d" ] && continue
+    for omd in "$d"/*.md; do [ -f "$omd" ] || continue
+      local inb=0 n=0 cur="" src; src="$(basename "$d")/$(basename "$omd")"
+      while IFS= read -r ln; do
+        if [ $inb -eq 1 ]; then
+          case "$ln" in '```'*) parse_block "$cur" "$src" "$n"; inb=0; cur="";; *) cur+="$ln"$'\n';; esac
+        else
+          case "$ln" in '```ocaml'|'```ocaml '*|'```ml'|'```ml '*) inb=1; n=$((n+1)); cur="";; esac
+        fi
+      done < "$omd"
+    done
+  done < <(fork)
+  rm -rf "$tmp"
+  echo "check-ocaml: $(green "$CHK_OK ok"), $(red "$CHK_FAIL parse error(s)"), $CHK_SKIP fragment(s) skipped"
+  [ "$CHK_FAIL" -gt 0 ] && return 1 || return 0
+}
+
 case "$CMD" in
-  integrity) integrity;;
-  lint)    lint;;
-  links)   links;;
-  metrics) metrics;;
-  all)     integrity; r0=$?; echo; lint; r1=$?; echo; links; r2=$?; echo; metrics; [ $((r0+r1+r2)) -eq 0 ];;
-  *)       sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//';;
+  integrity)  integrity;;
+  lint)       lint;;
+  links)      links;;
+  metrics)    metrics;;
+  check-ocaml) check_ocaml;;
+  all)        integrity; r0=$?; echo; lint; r1=$?; echo; links; r2=$?; echo; metrics; [ $((r0+r1+r2)) -eq 0 ];;
+  *)          sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//';;
 esac
