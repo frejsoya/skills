@@ -1,4 +1,4 @@
-# Matt Pocock Skills
+# Frej Soya Skills
 
 A collection of agent skills (slash commands and behaviors) loaded by Claude Code. Skills are organized into buckets and rely on per-repo configuration (issue tracker, triage labels, domain doc layout) provided in the consuming repo's `AGENTS.md`/`CLAUDE.md`.
 
@@ -22,5 +22,5 @@ A canonical state-machine label applied to an **Issue** during triage (e.g. `nee
 
 ## Flagged ambiguities
 
-- "backlog" was previously used to mean both the *tool* hosting issues and the *body of work* inside it — resolved: the tool is the **Issue tracker**; "backlog" is no longer used as a domain term.
+- "backlog" was previously used to mean both the _tool_ hosting issues and the _body of work_ inside it — resolved: the tool is the **Issue tracker**; "backlog" is no longer used as a domain term.
 - "backlog backend" / "backlog manager" — resolved: collapsed into **Issue tracker**.

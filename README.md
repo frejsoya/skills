@@ -29,13 +29,9 @@ My agent skills that I use every day to do real engineering - not vibe coding.
 > skills away from TypeScript/Node defaults toward OCaml + dune:
 > - **tdd** examples use Alcotest + `dune runtest`, with `.mli` signatures,
 >   functors, and first-class modules for dependency injection.
-> - **setup-pre-commit** installs a plain git hook running ocamlformat +
->   `dune build` + `dune runtest` (no Husky/lint-staged/Prettier).
 > - **prototype** uses `dune exec` task-runner conventions and OCaml idioms.
 > - **improve-codebase-architecture** / **review** reference `.mli`, dune, and
 >   ocamlformat config instead of `tsconfig`/eslint/prettier.
-> - `migrate-to-shoehorn` and `scaffold-exercises` are TypeScript/course-specific
->   and are marked not-applicable.
 >
 > The fork covers engineering *discipline* (tdd, diagnose, triage, architecture);
 > the vendored `ocaml-dev` set covers OCaml *domain* skills (eio, effects, result,
@@ -218,11 +214,3 @@ General workflow tools, not code-specific.
 - **[teach](./skills/productivity/teach/SKILL.md)** — Teach the user a new skill or concept over multiple sessions, using the current directory as a stateful teaching workspace.
 - **[write-a-skill](./skills/productivity/write-a-skill/SKILL.md)** — Create new skills with proper structure, progressive disclosure, and bundled resources.
 
-### Misc
-
-Tools I keep around but rarely use.
-
-- **[git-guardrails-claude-code](./skills/misc/git-guardrails-claude-code/SKILL.md)** — Set up Claude Code hooks to block dangerous git commands (push, reset --hard, clean, etc.) before they execute.
-- **[migrate-to-shoehorn](./skills/misc/migrate-to-shoehorn/SKILL.md)** — Migrate test files from `as` type assertions to @total-typescript/shoehorn.
-- **[scaffold-exercises](./skills/misc/scaffold-exercises/SKILL.md)** — Create exercise directory structures with sections, problems, solutions, and explainers.
-- **[setup-pre-commit](./skills/misc/setup-pre-commit/SKILL.md)** — Set up Husky pre-commit hooks with lint-staged, Prettier, type checking, and tests.

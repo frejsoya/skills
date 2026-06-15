@@ -35,7 +35,7 @@ EVAL           := scripts/skills-eval.sh
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install uninstall skills-status list-skills check lint links metrics eval integrity check-ocaml vendor-check
+.PHONY: help install uninstall prune skills-status list-skills check lint links metrics eval integrity check-ocaml vendor-check
 
 help:
 	@echo 'Skills repo — OCaml/FP agent skills'
@@ -43,6 +43,7 @@ help:
 	@echo 'Install & manage:'
 	@echo '  make install         symlink every skill into your agent skills dir'
 	@echo '  make uninstall       remove the symlinks this repo created'
+	@echo '  make prune           drop installed skills no longer in the repo (stale/dangling)'
 	@echo '  make skills-status   show which skills are installed (and from where)'
 	@echo '  make list-skills     list every skill this repo provides'
 	@echo '    vars: SKILLS_DIR=<dir> (default ~/.agents/skills), INCLUDE_VENDOR=0|1'
@@ -67,6 +68,9 @@ install:
 
 uninstall:
 	@$(INSTALL) uninstall "$(SKILLS_DIR)"
+
+prune:
+	@$(INSTALL) prune "$(SKILLS_DIR)"
 
 skills-status:
 	@$(INSTALL) status "$(SKILLS_DIR)"

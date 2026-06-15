@@ -120,7 +120,7 @@ integrity() {
     [ -f "$ROOT/$rel/SKILL.md" ] || err "plugin.json entry '$rel' has no SKILL.md"
   done
 
-  # 2. promoted skills (engineering/productivity/misc) must be in plugin.json;
+  # 2. promoted skills (engineering/productivity) must be in plugin.json;
   #    personal/ must NOT be. (CLAUDE.md)
   echo "$(dim "• promotion rules (plugin.json + README)")"
   while IFS= read -r d; do [ -z "$d" ] && continue
@@ -132,9 +132,6 @@ integrity() {
       engineering|productivity)   # auto-loaded buckets: required in plugin.json
         [ "$in_plugin" = y ] || err "$base ($bucket): missing from plugin.json"
         [ "$in_readme" = y ] || warn "$base ($bucket): not linked in top-level README.md";;
-      misc)                        # "rarely used": README expected, plugin optional
-        [ "$in_readme" = y ] || warn "$base (misc): not linked in top-level README.md"
-        [ "$in_plugin" = y ] || warn "$base (misc): not in plugin.json (misc is opt-in)";;
       personal)                    # private: must NOT be promoted
         [ "$in_plugin" = n ] || err "$base (personal): must NOT be in plugin.json"
         [ "$in_readme" = n ] || warn "$base (personal): should not be promoted in README.md";;

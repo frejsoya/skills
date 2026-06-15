@@ -11,6 +11,7 @@
 # Usage:
 #   install-skills.sh install   [STORE]
 #   install-skills.sh uninstall [STORE]
+#   install-skills.sh prune     [STORE]   # drop installed skills no longer in repo
 #   install-skills.sh status    [STORE]
 #   install-skills.sh list
 #
@@ -111,6 +112,31 @@ case "$CMD" in
     done
     echo "$(green "✓") removed $removed symlink(s)"
     echo "  $(dim "Backed-up originals (if any) remain under .skills-backup-* dirs.")"
+    ;;
+
+  prune)
+    # Remove installed entries that no longer correspond to a repo skill:
+    # stale/dangling symlinks are deleted; orphan real dirs are moved to a backup.
+    valid="$(discover | xargs -n1 basename 2>/dev/null | sort -u)"
+    ts="$(date +%Y%m%d-%H%M%S)"
+    pruned=0 backed=0
+    for tdir in $AGENT_DIRS "$STORE"; do
+      [ -d "$tdir" ] || continue
+      for entry in "$tdir"/*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        name="$(basename "$entry")"
+        case "$name" in .skills-backup-*|README.md) continue;; esac
+        printf '%s\n' "$valid" | grep -qx "$name" && continue   # still a real skill
+        if [ -L "$entry" ]; then
+          rm -f "$entry"; pruned=$((pruned+1))
+          echo "  $(yellow "− link") $tdir/$name"
+        elif [ -d "$entry" ]; then
+          mkdir -p "$tdir/.skills-backup-$ts"; mv "$entry" "$tdir/.skills-backup-$ts/$name"; backed=$((backed+1))
+          echo "  $(yellow "− dir ") $tdir/$name $(dim "-> .skills-backup-$ts/")"
+        fi
+      done
+    done
+    echo "$(green "✓") pruned $pruned stale link(s), backed up $backed orphan dir(s)"
     ;;
 
   status)
