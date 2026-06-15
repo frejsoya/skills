@@ -1,0 +1,5 @@
+upstream: https://github.com/avsm/ocaml-claude-marketplace.git
+subdir:   plugins/ocaml-dev
+commit:   ceb85f9331fce9cd56203f0dba1917c84529e52e
+date:     2026-05-24 11:26:38 +0100
+subject:  update-for-minus38
