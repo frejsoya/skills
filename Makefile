@@ -1,3 +1,25 @@
+# Skills repo: install/manage these skills for your agents, and vendor upstream
+# OCaml skills.
+#
+# Quick start:
+#   make install          # symlink every skill into your agent skills dir
+#   make skills-status     # show what's installed
+#   make uninstall         # remove the symlinks this repo created
+#
+# ---------------------------------------------------------------------------
+# Installing these skills
+# ---------------------------------------------------------------------------
+#
+# Skills are installed by symlinking each skill directory into a shared store
+# (default ~/.agents/skills), which both Claude Code (~/.claude/skills) and pi
+# (~/.pi/agent/skills) already read through their own symlinks. The repo stays
+# the source of truth: edit a SKILL.md here and it's live everywhere.
+#
+# Override the target dir with SKILLS_DIR=..., e.g.
+#   make install SKILLS_DIR=~/.claude/skills
+# Skip the vendored OCaml skills with INCLUDE_VENDOR=0.
+#
+# ---------------------------------------------------------------------------
 # Vendoring of third-party OCaml agent skills.
 #
 # We vendor Anil Madhavapeddy's `ocaml-dev` plugin (avsm/ocaml-claude-marketplace)
@@ -9,6 +31,39 @@
 #   make vendor-update REF=<sha> # pin to a specific upstream commit
 #   make vendor-diff             # show what upstream changed vs our vendored copy
 #   make vendor-status           # print pinned commit + whether upstream moved
+
+INSTALL        := scripts/install-skills.sh
+
+.DEFAULT_GOAL := help
+
+.PHONY: help install uninstall skills-status list-skills
+
+help:
+	@echo 'Skills repo — OCaml/FP agent skills'
+	@echo
+	@echo 'Install & manage:'
+	@echo '  make install         symlink every skill into your agent skills dir'
+	@echo '  make uninstall       remove the symlinks this repo created'
+	@echo '  make skills-status   show which skills are installed (and from where)'
+	@echo '  make list-skills     list every skill this repo provides'
+	@echo '    vars: SKILLS_DIR=<dir> (default ~/.agents/skills), INCLUDE_VENDOR=0|1'
+	@echo
+	@echo 'Vendored upstream skills:'
+	@echo '  make vendor-update   pull latest avsm/ocaml-dev, re-sync, update lock'
+	@echo '  make vendor-diff     show what upstream changed vs our copy'
+	@echo '  make vendor-status   print the pinned upstream commit'
+
+install:
+	@$(INSTALL) install "$(SKILLS_DIR)"
+
+uninstall:
+	@$(INSTALL) uninstall "$(SKILLS_DIR)"
+
+skills-status:
+	@$(INSTALL) status "$(SKILLS_DIR)"
+
+list-skills:
+	@$(INSTALL) list
 
 VENDOR_NAME    := ocaml-claude-marketplace
 UPSTREAM_URL   := https://github.com/avsm/ocaml-claude-marketplace.git
