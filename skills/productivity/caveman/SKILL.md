@@ -26,9 +26,9 @@ Yes: "Bug in auth middleware. Token expiry check use `<` not `<=`. Fix:"
 
 ### Examples
 
-**"Why React component re-render?"**
+**"Why does this OCaml function allocate so much?"**
 
-> Inline obj prop -> new ref -> re-render. `useMemo`.
+> Intermediate list each call. Use `List.fold_left`, no temp list.
 
 **"Explain database connection pooling."**
 
