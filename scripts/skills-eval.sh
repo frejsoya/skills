@@ -160,6 +160,17 @@ integrity() {
     done
   fi
 
+  # 4b. routing-eval coverage (waza-style): how many skills have a positive case?
+  echo "$(dim "• routing-eval coverage")"
+  if [ -f "$tc" ]; then
+    local covered total=0 cov=0 expset; expset="$(grep -E '^\| *[0-9]+ *\|' "$tc" | awk -F'|' '{print $4}' | awk '{print $1}' | sort -u)"
+    while IFS= read -r d; do [ -z "$d" ] && continue
+      total=$((total+1)); printf '%s\n' "$expset" | grep -qx "$(basename "$d")" && cov=$((cov+1))
+    done < <(fork; vendored)
+    echo "  $(dim "$cov/$total skills have a positive routing case")"
+    [ "$cov" -lt "$total" ] && warn "routing-eval covers $cov/$total skills — add trigger-cases for the rest"
+  fi
+
   # 5. name uniqueness across the install surface (collisions clobber symlinks)
   echo "$(dim "• name uniqueness (fork + vendored)")"
   { fork; vendored; } | xargs -n1 basename 2>/dev/null | sort | uniq -d | while IFS= read -r dup; do
@@ -268,27 +279,29 @@ links() {
 metrics() {
   echo "# Skills metrics"
   echo
-  echo "| skill | src | SKILL lines | files | bytes | code blks | desc len | trigger |"
+  echo "| skill | src | SKILL lines | files | ~tokens | code blks | desc len | trigger |"
   echo "|---|---|--:|--:|--:|--:|--:|:--:|"
-  local total=0 fork_n=0 vend_n=0 no_trig=0 big=0
+  local total=0 fork_n=0 vend_n=0 no_trig=0 big=0 tok_total=0 heavy=0
   emit() {
-    local d="$1" src="$2" md name desc lines files bytes blks dlen trig
+    local d="$1" src="$2" md name desc lines files chars tok blks dlen trig
     md="$(skillmd "$d")"; [ -z "$md" ] && return
     name="$(basename "$d")"; desc="$(fm_field "$md" description)"
     lines="$(wc -l < "$md" | tr -d ' ')"
     files="$(find "$d" -type f | wc -l | tr -d ' ')"
-    bytes="$(du -sk "$d" | cut -f1)"
+    # rough token budget across all .md in the skill (~4 chars/token)
+    chars="$(cat "$d"/*.md 2>/dev/null | wc -c | tr -d ' ')"; tok=$((chars/4))
     blks="$(grep -cE '^```[a-zA-Z]' "$md")"
     dlen="${#desc}"
     if echo "$desc" | grep -qiE 'use when|use this when|use for'; then trig="✓"; else trig="✗"; no_trig=$((no_trig+1)); fi
     [ "$lines" -gt 500 ] && big=$((big+1))
-    printf '| %s | %s | %s | %s | %sK | %s | %s | %s |\n' "$name" "$src" "$lines" "$files" "$bytes" "$blks" "$dlen" "$trig"
+    tok_total=$((tok_total+tok)); [ "$tok" -gt 5000 ] && heavy=$((heavy+1))
+    printf '| %s | %s | %s | %s | %s | %s | %s | %s |\n' "$name" "$src" "$lines" "$files" "$tok" "$blks" "$dlen" "$trig"
     total=$((total+1))
   }
   while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" fork; fork_n=$((fork_n+1)); done < <(fork)
   while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" vend; vend_n=$((vend_n+1)); done < <(vendored)
   echo
-  echo "**Totals**: $total skills ($fork_n forked from mattpocock, $vend_n vendored from avsm) · $no_trig missing a trigger phrase · $big over 500 lines."
+  echo "**Totals**: $total skills ($fork_n forked from mattpocock, $vend_n vendored from avsm) · ~$tok_total tokens total · $no_trig missing a trigger phrase · $big over 500 lines · $heavy over ~5k tokens."
 }
 
 # Tier 4 #14 — syntax-check ocaml code blocks (opt-in; needs a toolchain).

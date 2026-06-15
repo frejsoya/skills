@@ -21,8 +21,10 @@ LLM layers before a release or after a big edit.
   non-executable referenced scripts, orphan supporting docs.
 - **`make vendor-check`** — `sources/*.lock` well-formed; vendored tree matches
   its pinned commit (catches hand-edits/drift).
-- **`make metrics`** — per-skill table (size, files, code blocks, desc length,
-  trigger) + totals.
+- **`make metrics`** — per-skill table (size, files, **~token budget**, code
+  blocks, desc length, trigger) + totals, including how many skills exceed ~5k
+  tokens. `integrity` also reports **routing-eval coverage** (how many skills have
+  a positive trigger case).
 - **`make check-ocaml`** *(opt-in, needs an OCaml toolchain)* — parses `ocaml`
   blocks; see the MDX note below for executing runnable blocks.
 
@@ -66,6 +68,23 @@ A scored rubric for *content* quality (clarity, actionability, correctness,
 progressive disclosure, OCaml idiom). Point an agent at a skill + the rubric and
 have it produce a scorecard with concrete fix suggestions. Use it on skills the
 deterministic layer can't judge (prose quality, contradictions, idiom).
+
+## 4. Going further — model-graded evals with waza
+
+The layers above are deterministic or LLM-judge-by-hand. To *execute* skills
+against real models and grade the results, [microsoft/waza](https://github.com/microsoft/waza)
+is a purpose-built CLI:
+
+- Per-skill eval suites with **positive-trigger** and **negative-trigger** tasks
+  (`USE FOR` / `DO NOT USE FOR`) — our [`trigger-cases.md`](./trigger-cases.md) is
+  the by-hand version of this; waza runs them against a model and grades routing.
+- `waza run` / `grade` / `compare` — run evals, grade output, compare across models.
+- `waza tokens` — token-budget tracking (we approximate this in `make metrics`).
+- `waza coverage` — which skills have evals (we approximate in `make integrity`).
+
+If we want CI that actually exercises the skills (not just lints them), adopting
+waza's `evals/<skill>/tasks/*.yaml` layout + `waza run` is the path. Our deterministic
+suite stays the fast first gate; waza becomes the deep, model-in-the-loop gate.
 
 ## What "good" means here
 
