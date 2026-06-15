@@ -1,8 +1,12 @@
-# Vendored third-party skills
+# Vendored skills (verbatim)
 
-This directory holds **vendored copies** of external OCaml agent skills. They are
-checked in (not submodules) so the repo is self-contained, but they are *not* ours
-to edit — change them upstream and re-sync.
+This directory holds skills **vendored verbatim** from an external upstream:
+checked in (not submodules) so the repo is self-contained, pinned to a commit,
+and **never hand-edited** — change them upstream and re-sync.
+
+> The rest of the repo (`skills/`) is a *diverged fork* of `mattpocock/skills`,
+> which we **do** edit. Both are external; they differ only by edit policy. See
+> [`sources/README.md`](../sources/README.md) for the full provenance model.
 
 ## ocaml-claude-marketplace / ocaml-dev
 
@@ -14,7 +18,7 @@ expertise.
 
 - **Upstream**: https://github.com/avsm/ocaml-claude-marketplace (`plugins/ocaml-dev`)
 - **License**: ISC (see upstream `LICENSE`)
-- **Pinned commit**: recorded in [`ocaml-claude-marketplace.lock`](./ocaml-claude-marketplace.lock)
+- **Pinned commit**: recorded in [`sources/ocaml-claude-marketplace.lock`](../sources/ocaml-claude-marketplace.lock)
 
 ### Updating
 

@@ -14,8 +14,19 @@
 
 My agent skills that I use every day to do real engineering - not vibe coding.
 
-> **Fork note — OCaml / functional-programming flavor.** This fork adapts the
-> engineering skills away from TypeScript/Node defaults toward OCaml + dune:
+> **Provenance — every skill is external; see [`sources/`](./sources/).** This
+> repo composes two upstreams that differ only by *edit policy*:
+> - **`skills/`** — a **diverged fork** of [`mattpocock/skills`](https://github.com/mattpocock/skills)
+>   (tracked via the `upstream` remote), adapted for OCaml/FP. We edit these;
+>   pull upstream improvements with `git merge upstream/main` (`make fork-status`).
+> - **`vendor/`** — skill sets **vendored verbatim** (pinned, never hand-edited).
+>   Currently Anil Madhavapeddy's OCaml `ocaml-dev` plugin; `make vendor-update`.
+>
+> There's no "ours vs theirs" — both are upstreams. Provenance and locks for each
+> live under [`sources/`](./sources/README.md).
+>
+> **OCaml / functional-programming flavor.** The fork adapts the engineering
+> skills away from TypeScript/Node defaults toward OCaml + dune:
 > - **tdd** examples use Alcotest + `dune runtest`, with `.mli` signatures,
 >   functors, and first-class modules for dependency injection.
 > - **setup-pre-commit** installs a plain git hook running ocamlformat +
@@ -26,15 +37,9 @@ My agent skills that I use every day to do real engineering - not vibe coding.
 > - `migrate-to-shoehorn` and `scaffold-exercises` are TypeScript/course-specific
 >   and are marked not-applicable.
 >
-> Upstream is tracked as the `upstream` remote for syncing future changes.
->
-> **Complementary OCaml skills (vendored).** These skills cover engineering
-> *discipline* (tdd, diagnose, triage, architecture). For OCaml *domain* skills
-> (eio, effects, result, cmdliner, jsont, fuzz, memtrace, testing, code-style,
-> project-setup, oxcaml) we vendor Anil Madhavapeddy's
-> [`ocaml-dev` plugin](https://github.com/avsm/ocaml-claude-marketplace) under
-> [`vendor/`](./vendor/). Update/diff it with `make vendor-update` /
-> `make vendor-diff` (see [vendor/README.md](./vendor/README.md)).
+> The fork covers engineering *discipline* (tdd, diagnose, triage, architecture);
+> the vendored `ocaml-dev` set covers OCaml *domain* skills (eio, effects, result,
+> cmdliner, jsont, fuzz, memtrace, testing, code-style, project-setup, oxcaml).
 >
 > **Recommended infrastructure.** Install an OCaml MCP server so the agent gets
 > type-aware navigation and build diagnostics instead of shelling out blind:
@@ -43,7 +48,7 @@ My agent skills that I use every day to do real engineering - not vibe coding.
 
 ## Using these skills
 
-Install every skill (ours + the vendored OCaml ones) into your agent by
+Install every skill (the forked set + the vendored OCaml ones) into your agent by
 symlinking — the repo stays the source of truth, so editing a `SKILL.md` here is
 live immediately:
 

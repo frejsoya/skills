@@ -1,0 +1,8 @@
+upstream:   https://github.com/mattpocock/skills.git
+remote:     upstream
+policy:     forked & diverged (OCaml/FP adaptation)
+location:   skills/
+update:     git fetch upstream && git merge upstream/main
+fork-point: 694fa30311e02c2639942308513555e61ee84a6f
+date:       2026-06-10 16:01:44 +0100
+subject:    Refine quiz guidelines by standardizing answer length to prevent user clues and enhance assessment integrity.
