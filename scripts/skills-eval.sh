@@ -7,11 +7,13 @@
 # The qualitative LLM-judge layer lives in evals/ (see evals/README.md).
 #
 # Usage:
-#   skills-eval.sh integrity # repo invariants (plugin.json/README/eval/names)
-#   skills-eval.sh lint      # exit 1 on any error
-#   skills-eval.sh metrics   # markdown report to stdout
-#   skills-eval.sh links     # exit 1 on broken links
-#   skills-eval.sh all       # integrity + lint + links + metrics
+#   skills-eval.sh integrity    # repo invariants (plugin.json/README/eval/names)
+#   skills-eval.sh lint         # frontmatter/description/hygiene (exit 1 on error)
+#   skills-eval.sh links        # broken links, anchors, orphans, depth
+#   skills-eval.sh metrics      # markdown report to stdout
+#   skills-eval.sh check-ocaml  # parse ocaml code blocks (opt-in; needs toolchain)
+#   skills-eval.sh vendor-check # vendored locks well-formed + no drift
+#   skills-eval.sh all          # integrity + lint + links + vendor-check + metrics
 #
 # Lint/hygiene apply to the FORKED skills (skills/ — our diverged copy of
 # mattpocock/skills that we edit). VENDORED skills (vendor/, verbatim from avsm)
@@ -109,6 +111,7 @@ orphan_docs() {
 # Tier 1 — repo-integrity invariants (what CLAUDE.md mandates but nothing checked)
 integrity() {
   echo "$(green "integrity") — repo invariants"
+  local e0=$ERRORS w0=$WARNS
   local plugin="$ROOT/.claude-plugin/plugin.json" readme="$ROOT/README.md"
 
   # 1. plugin.json entries resolve to a real skill dir
@@ -167,12 +170,13 @@ integrity() {
   done
 
   echo
-  echo "integrity: $(red "$ERRORS error(s)"), $(yellow "$WARNS warning(s)")"
-  [ "$ERRORS" -gt 0 ] && return 1 || return 0
+  echo "integrity: $(red "$((ERRORS-e0)) error(s)"), $(yellow "$((WARNS-w0)) warning(s)")"
+  [ "$((ERRORS-e0))" -gt 0 ] && return 1 || return 0
 }
 
 lint() {
   echo "$(green "lint") — structural + hygiene (forked skills in skills/)"
+  local e0=$ERRORS w0=$WARNS
   while IFS= read -r d; do [ -z "$d" ] && continue
     local md name desc base; md="$(skillmd "$d")"; base="$(basename "$d")"
     echo "$(dim "• $base")"
@@ -235,8 +239,8 @@ lint() {
     }}' "$tmp" | while IFS= read -r line; do warn "${line#OVERLAP }"; done
   rm -f "$tmp"
   echo
-  echo "lint: $(red "$ERRORS error(s)"), $(yellow "$WARNS warning(s)")"
-  [ "$ERRORS" -gt 0 ] && return 1 || return 0
+  echo "lint: $(red "$((ERRORS-e0)) error(s)"), $(yellow "$((WARNS-w0)) warning(s)")"
+  [ "$((ERRORS-e0))" -gt 0 ] && return 1 || return 0
 }
 
 links() {
@@ -330,12 +334,46 @@ check_ocaml() {
   [ "$CHK_FAIL" -gt 0 ] && return 1 || return 0
 }
 
+# Tier 5 — vendoring integrity: locks well-formed + vendored tree not hand-edited
+vendor_check() {
+  echo "$(green "vendor-check") — lock well-formedness + drift"
+  local e0=$ERRORS w0=$WARNS
+  # 1. locks have required fields
+  echo "$(dim "• lock files")"
+  local fl="$ROOT/sources/mattpocock-skills.lock" vl="$ROOT/sources/ocaml-claude-marketplace.lock"
+  [ -f "$fl" ] || err "missing sources/mattpocock-skills.lock"
+  [ -f "$vl" ] || err "missing sources/ocaml-claude-marketplace.lock"
+  [ -f "$fl" ] && for f in upstream policy fork-point; do grep -q "^$f:" "$fl" || err "mattpocock lock missing '$f:'"; done
+  [ -f "$vl" ] && for f in upstream subdir commit; do grep -q "^$f:" "$vl" || err "avsm lock missing '$f:'"; done
+  # 2. drift: does vendor/ still match the pinned commit? (needs the cache)
+  echo "$(dim "• drift (vendored tree vs pinned commit)")"
+  local cache="$ROOT/.vendor-cache/ocaml-claude-marketplace"
+  local sub sha vdir; sub="$(awk '/^subdir:/{print $2}' "$vl" 2>/dev/null)"
+  sha="$(awk '/^commit:/{print $2}' "$vl" 2>/dev/null)"
+  vdir="$ROOT/vendor/ocaml-claude-marketplace/ocaml-dev"
+  if [ -d "$cache/.git" ] && [ -n "$sha" ]; then
+    git -C "$cache" checkout -q --detach "$sha" 2>/dev/null || true
+    if diff -rq --exclude='.git' "$cache/$sub" "$vdir" >/tmp/vdrift 2>&1; then
+      echo "  $(green "✓") vendored tree matches pinned $sha"
+    else
+      sed 's/^/  /' /tmp/vdrift | head -20 | while IFS= read -r l; do warn "drift: ${l#  }"; done
+      warn "vendored tree differs from pin — was it hand-edited? re-sync with 'make vendor-update'"
+    fi; rm -f /tmp/vdrift
+  else
+    echo "  $(dim "no local cache — run 'make vendor-update' once to enable drift detection")"
+  fi
+  echo
+  echo "vendor-check: $(red "$((ERRORS-e0)) error(s)"), $(yellow "$((WARNS-w0)) warning(s)")"
+  [ "$((ERRORS-e0))" -gt 0 ] && return 1 || return 0
+}
+
 case "$CMD" in
-  integrity)  integrity;;
-  lint)       lint;;
-  links)      links;;
-  metrics)    metrics;;
+  integrity)   integrity;;
+  lint)        lint;;
+  links)       links;;
+  metrics)     metrics;;
   check-ocaml) check_ocaml;;
-  all)        integrity; r0=$?; echo; lint; r1=$?; echo; links; r2=$?; echo; metrics; [ $((r0+r1+r2)) -eq 0 ];;
-  *)          sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//';;
+  vendor-check) vendor_check;;
+  all)         integrity; r0=$?; echo; lint; r1=$?; echo; links; r2=$?; echo; vendor_check; r3=$?; echo; metrics; [ $((r0+r1+r2+r3)) -eq 0 ];;
+  *)           sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//';;
 esac

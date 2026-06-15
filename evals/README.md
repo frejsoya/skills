@@ -3,18 +3,28 @@
 Three layers, cheapest first. Run the deterministic layer on every change; run the
 LLM layers before a release or after a big edit.
 
-## 1. Deterministic checks — `make check` / `make metrics`
+## 1. Deterministic checks — `make eval` (no LLM, CI-gated)
 
-`scripts/skills-eval.sh` (no LLM, runs in CI):
+`scripts/skills-eval.sh`. `make eval` runs them all; each is also a target:
 
-- **`make check`** — structural + hygiene lint. **Errors fail CI**: missing/empty
-  frontmatter `name`/`description`, `name` ≠ directory. **Warnings** (reported,
-  don't fail): no "Use when …" trigger, description > 1024 chars, SKILL.md > 500
-  lines, code blocks without a language, and OCaml-hygiene regressions in *our*
-  skills (stray `Lwt`, `jest`, `pnpm`, `.tsx`, …).
-- **`make links`** — broken intra-repo markdown links (ignores fenced examples).
-- **`make metrics`** — a markdown table: per-skill size, file count, code-block
-  count, description length, trigger coverage; totals at the bottom.
+- **`make integrity`** — repo invariants (errors fail CI): `plugin.json` entries
+  resolve; engineering/productivity skills are in `plugin.json` + linked in
+  README; bucket READMEs list every skill; `trigger-cases.md` expected skills
+  exist; skill names are unique across fork + vendored.
+- **`make check`** (lint) — structural + hygiene. **Errors**: missing/malformed
+  frontmatter, `name` ≠ directory. **Warnings**: no "Use when …" trigger,
+  description > 1024 chars / not capitalized / no period / first-person, unknown
+  frontmatter keys, trigger-overlap, SKILL.md > 500 lines, untagged code blocks,
+  non-OCaml residue (`Lwt`/`jest`/`pnpm`/`.tsx`), and OCaml anti-patterns
+  (`Obj.magic`/`Printf.`) inside `ocaml` code blocks.
+- **`make links`** — broken links, dead anchors, links not one level deep,
+  non-executable referenced scripts, orphan supporting docs.
+- **`make vendor-check`** — `sources/*.lock` well-formed; vendored tree matches
+  its pinned commit (catches hand-edits/drift).
+- **`make metrics`** — per-skill table (size, files, code blocks, desc length,
+  trigger) + totals.
+- **`make check-ocaml`** *(opt-in, needs an OCaml toolchain)* — parses `ocaml`
+  blocks; see the MDX note below for executing runnable blocks.
 
 These also catch *integrity* problems — a missing skill directory shows up as a
 count drop in `metrics` (this is how we caught a working-tree regression once).
