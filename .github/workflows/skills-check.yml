@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Repo-integrity invariants
+        run: make integrity
       - name: Lint skills (structural + hygiene)
         run: make check
       - name: Broken-link check
