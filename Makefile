@@ -33,10 +33,11 @@
 #   make vendor-status           # print pinned commit + whether upstream moved
 
 INSTALL        := scripts/install-skills.sh
+EVAL           := scripts/skills-eval.sh
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install uninstall skills-status list-skills
+.PHONY: help install uninstall skills-status list-skills check lint links metrics eval
 
 help:
 	@echo 'Skills repo — OCaml/FP agent skills'
@@ -47,6 +48,12 @@ help:
 	@echo '  make skills-status   show which skills are installed (and from where)'
 	@echo '  make list-skills     list every skill this repo provides'
 	@echo '    vars: SKILLS_DIR=<dir> (default ~/.agents/skills), INCLUDE_VENDOR=0|1'
+	@echo
+	@echo 'Review suite (see evals/README.md):'
+	@echo '  make check           lint: structural + hygiene checks (fails on error)'
+	@echo '  make links           report broken intra-repo markdown links'
+	@echo '  make metrics         per-skill size/trigger/code-block report'
+	@echo '  make eval            check + links + metrics'
 	@echo
 	@echo 'Vendored upstream skills:'
 	@echo '  make vendor-update   pull latest avsm/ocaml-dev, re-sync, update lock'
@@ -64,6 +71,18 @@ skills-status:
 
 list-skills:
 	@$(INSTALL) list
+
+check lint:
+	@$(EVAL) lint
+
+links:
+	@$(EVAL) links
+
+metrics:
+	@$(EVAL) metrics
+
+eval:
+	@$(EVAL) all
 
 VENDOR_NAME    := ocaml-claude-marketplace
 UPSTREAM_URL   := https://github.com/avsm/ocaml-claude-marketplace.git

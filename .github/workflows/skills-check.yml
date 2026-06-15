@@ -1,0 +1,21 @@
+name: skills-check
+
+# Deterministic review layer — runs on every push/PR. The LLM layers
+# (evals/RUBRIC.md, evals/trigger-cases.md) are run manually before releases.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint skills (structural + hygiene)
+        run: make check
+      - name: Broken-link check
+        run: make links
+      - name: Metrics report
+        run: make metrics >> "$GITHUB_STEP_SUMMARY"
