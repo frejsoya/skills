@@ -29,22 +29,22 @@ Put the actual logic — the bit that's answering the question — behind a smal
 
 The right shape depends on the question:
 
-- **A pure reducer** — `(state, action) => state`. Good when actions are discrete events and state is a single value.
-- **A state machine** — explicit states and transitions. Good when "which actions are even legal right now" is part of the question.
+- **A pure reducer** — `val step : state -> action -> state`, with `action` a variant. Good when actions are discrete events and state is a single value. OCaml's exhaustive matching on `action` is exactly the property you're stress-testing.
+- **A state machine** — model states as a variant (`type state = Idle | Running of ... | Done`) and transitions as `val transition : state -> event -> state`. Good when "which actions are even legal right now" is part of the question — illegal transitions become a `_ -> Error ...` arm you can see.
 - **A small set of pure functions** over a plain data type. Good when there's no implicit current state — just transformations.
-- **A class or module with a clear method surface** when the logic genuinely owns ongoing internal state.
+- **A module with an abstract `type t`** when the logic genuinely owns ongoing internal state — keep the mutation behind the `.mli`.
 
-Pick whichever shape best fits the question being asked, *not* whichever is easiest to wire to a TUI. Keep it pure: no I/O, no terminal code, no `console.log` for control flow. The TUI imports it and calls into it; nothing flows the other direction.
+Pick whichever shape best fits the question being asked, *not* whichever is easiest to wire to a TUI. Keep it pure: no I/O, no terminal code, no `Fmt.pr`/printing for control flow. The TUI opens it and calls into it; nothing flows the other direction.
 
 This is what makes the prototype useful past its own lifetime. When the question's been answered, the validated reducer / machine / function set can be lifted into the real module — the TUI shell gets deleted.
 
 ### 4. Build the smallest TUI that exposes the state
 
-Build it as a **lightweight TUI** — on every tick, clear the screen (`console.clear()` / `print("\033[2J\033[H")` / equivalent) and re-render the whole frame. The user should always see one stable view, not an ever-growing scrollback.
+Build it as a **lightweight TUI** — on every tick, clear the screen (`Fmt.pr "\027[2J\027[H"` / equivalent) and re-render the whole frame. The user should always see one stable view, not an ever-growing scrollback.
 
 Each frame has two parts, in this order:
 
-1. **Current state**, pretty-printed and diff-friendly (one field per line, or formatted JSON). Use **bold** for field names or section headers and **dim** for less important context (timestamps, IDs, derived values). Native ANSI escape codes are fine — `\x1b[1m` bold, `\x1b[2m` dim, `\x1b[0m` reset. No need to pull in a styling library unless one is already in the project.
+1. **Current state**, pretty-printed and diff-friendly (one field per line). Write a small `Fmt.t` pretty-printer (`val pp_state : state Fmt.t`) rather than dumping a record — it keeps the rendering declarative and reusable. Use `Fmt.styled` for emphasis: `Fmt.(styled `Bold string)` for field names or section headers, `Fmt.(styled `Faint string)` for less important context (timestamps, IDs, derived values). `Fmt` handles the ANSI escapes for you; no need for a separate styling library.
 2. **Keyboard shortcuts**, listed at the bottom: `[a] add user  [d] delete user  [t] tick clock  [q] quit`. Bold the key, dim the description, or vice-versa — whatever reads cleanly.
 
 Behaviour:
@@ -58,7 +58,7 @@ The whole frame should fit on one screen.
 
 ### 5. Make it runnable in one command
 
-Add a script to the project's existing task runner (`package.json` scripts, `Makefile`, `justfile`, `pyproject.toml`). The user should run `pnpm run <prototype-name>` or equivalent — never need to remember a path.
+Add an entry to the project's existing task runner (a dune `executable` stanza, `Makefile`, `justfile`). The user should run `dune exec <prototype-name>` or equivalent — never need to remember a path.
 
 If the host project has no task runner, just put the command at the top of the prototype's README.
 
@@ -75,5 +75,5 @@ When the prototype has done its job, the answer to the question is the only thin
 - **Don't add tests.** A prototype that needs tests is no longer a prototype.
 - **Don't wire it to the real database.** Use an in-memory store unless the question is specifically about persistence.
 - **Don't generalise.** No "what if we wanted to support X later." The prototype answers one question.
-- **Don't blur the logic and the TUI together.** If the reducer / state machine references `console.log`, prompts, or terminal escape codes, it's no longer portable. Keep the TUI as a thin shell over a pure module.
+- **Don't blur the logic and the TUI together.** If the reducer / state machine references `Fmt.pr`, prompts, or terminal escape codes, it's no longer portable. Keep the TUI as a thin shell over a pure module.
 - **Don't ship the TUI shell into production.** The shell is optimised for being driven by hand from a terminal. The logic module behind it is the bit worth keeping.
