@@ -1,0 +1,16 @@
+id: tdd-positive-001
+name: tdd positive trigger
+description: A prompt that should route to the tdd skill.
+tags: [positive-trigger, routing]
+inputs:
+  prompt: "Let's build this feature test-first, designing the .mli first."
+expected:
+  outcomes:
+    - type: task_completed
+graders:
+  - type: skill_invocation
+    name: routes_to_tdd
+    config:
+      mode: any_order
+      required_skills: [tdd]
+      allow_extra: true

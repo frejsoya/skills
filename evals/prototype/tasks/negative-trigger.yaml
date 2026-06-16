@@ -1,0 +1,13 @@
+id: prototype-negative-001
+name: prototype negative trigger (routes elsewhere)
+description: A confusable prompt that should route to 'tdd', not 'prototype'.
+tags: [negative-trigger, routing]
+inputs:
+  prompt: "Let's build this feature test-first."
+graders:
+  - type: skill_invocation
+    name: routes_to_tdd_not_prototype
+    config:
+      mode: any_order
+      required_skills: [tdd]
+      allow_extra: false

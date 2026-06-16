@@ -56,6 +56,7 @@ help:
 	@echo '  make vendor-check    vendored locks well-formed + no hand-edits (drift)'
 	@echo '  make eval            integrity + lint + links + vendor-check + metrics'
 	@echo '  make check-ocaml     parse ocaml code blocks (opt-in; needs OCaml toolchain)'
+	@echo '  make waza            run model-graded routing evals (opt-in; needs waza)'
 	@echo
 	@echo 'Sources (see sources/README.md):'
 	@echo '  make fork-status     how far skills/ is behind mattpocock/skills upstream'
@@ -99,6 +100,14 @@ check-ocaml:
 vendor-check:
 	@$(EVAL) vendor-check
 
+# Model-graded routing evals (microsoft/waza). Skips cleanly if waza isn't installed.
+# Default suites use executor: mock; set executor: copilot-sdk in eval.yaml for real runs.
+waza:
+	@if ! command -v waza >/dev/null 2>&1; then \
+	  echo "waza not installed — https://github.com/microsoft/waza (see evals/README.md)"; exit 0; \
+	fi; \
+	rc=0; for e in evals/*/eval.yaml; do echo "== $$e =="; waza run "$$e" || rc=1; done; exit $$rc
+
 # alias kept so `make check` in CI runs the full deterministic gate
 check-all: integrity check links vendor-check
 
@@ -114,7 +123,7 @@ REF            ?= origin/main
 # rsync flags: mirror upstream subdir, drop VCS noise.
 RSYNC_FLAGS := -a --delete --exclude '.git'
 
-.PHONY: vendor-update vendor-diff vendor-status fork-status _vendor-fetch
+.PHONY: vendor-update vendor-diff vendor-status fork-status waza _vendor-fetch
 
 fork-status:
 	@git fetch --quiet upstream 2>/dev/null || true; \

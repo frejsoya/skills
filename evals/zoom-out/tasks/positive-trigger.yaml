@@ -1,0 +1,16 @@
+id: zoom-out-positive-001
+name: zoom-out positive trigger
+description: A prompt that should route to the zoom-out skill.
+tags: [positive-trigger, routing]
+inputs:
+  prompt: "I don't know this area of code; give me a higher-level map."
+expected:
+  outcomes:
+    - type: task_completed
+graders:
+  - type: skill_invocation
+    name: routes_to_zoom-out
+    config:
+      mode: any_order
+      required_skills: [zoom-out]
+      allow_extra: true

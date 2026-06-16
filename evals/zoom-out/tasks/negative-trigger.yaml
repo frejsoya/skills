@@ -1,0 +1,13 @@
+id: zoom-out-negative-001
+name: zoom-out negative trigger (no skill)
+description: An unrelated prompt where no skill (and definitely not zoom-out) should fire.
+tags: [negative-trigger, routing]
+inputs:
+  prompt: "Rename this variable."
+graders:
+  - type: skill_invocation
+    name: no_skill_fires
+    config:
+      mode: exact_match
+      required_skills: []
+      allow_extra: false

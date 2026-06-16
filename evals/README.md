@@ -69,22 +69,43 @@ progressive disclosure, OCaml idiom). Point an agent at a skill + the rubric and
 have it produce a scorecard with concrete fix suggestions. Use it on skills the
 deterministic layer can't judge (prose quality, contradictions, idiom).
 
-## 4. Going further — model-graded evals with waza
+## 4. Model-graded routing evals — waza (`make waza`)
 
-The layers above are deterministic or LLM-judge-by-hand. To *execute* skills
-against real models and grade the results, [microsoft/waza](https://github.com/microsoft/waza)
-is a purpose-built CLI:
+We run [microsoft/waza](https://github.com/microsoft/waza) suites that *execute*
+the skills and grade **routing** (does the right skill fire for a prompt?). Each
+engineering forked skill has a suite under `evals/<skill>/`:
 
-- Per-skill eval suites with **positive-trigger** and **negative-trigger** tasks
-  (`USE FOR` / `DO NOT USE FOR`) — our [`trigger-cases.md`](./trigger-cases.md) is
-  the by-hand version of this; waza runs them against a model and grades routing.
-- `waza run` / `grade` / `compare` — run evals, grade output, compare across models.
-- `waza tokens` — token-budget tracking (we approximate this in `make metrics`).
-- `waza coverage` — which skills have evals (we approximate in `make integrity`).
+```
+evals/<skill>/
+  eval.yaml                    # skill: <name>, config (executor/model), metrics, tasks glob
+  tasks/positive-trigger.yaml  # prompt that SHOULD invoke the skill
+  tasks/negative-trigger.yaml  # confusable prompt that should route elsewhere / nowhere
+```
 
-If we want CI that actually exercises the skills (not just lints them), adopting
-waza's `evals/<skill>/tasks/*.yaml` layout + `waza run` is the path. Our deterministic
-suite stays the fast first gate; waza becomes the deep, model-in-the-loop gate.
+Routing is asserted with waza's **`skill_invocation`** grader
+(`required_skills`, `mode: any_order|exact_match`, `allow_extra`). Tasks are
+derived from [`trigger-cases.md`](./trigger-cases.md) — that table stays the
+human-readable index; these YAML suites are the executable form.
+
+**Run it:**
+
+```sh
+make waza                          # every evals/*/eval.yaml (skips if waza absent)
+waza run evals/tdd/eval.yaml -v    # a single suite
+waza compare a.json b.json         # compare two models' results
+```
+
+- Suites default to **`executor: mock`** (no credentials) — a schema/harness smoke
+  test, also what CI runs (`.github/workflows/waza-eval.yml`).
+- For **real** routing evaluation, set `executor: copilot-sdk` (and a `model:`) in
+  the suite's `eval.yaml` and provide credentials.
+
+**Adding a skill's suite:** copy an existing `evals/<skill>/` (or `waza new eval
+<skill>`), set `skill:`, and write positive/negative prompts. `make integrity`
+reports routing coverage so gaps are visible.
+
+The deterministic suite (§1–3) stays the fast first gate; waza is the deep,
+model-in-the-loop gate that lets you evaluate skill changes for routing drift.
 
 ## What "good" means here
 

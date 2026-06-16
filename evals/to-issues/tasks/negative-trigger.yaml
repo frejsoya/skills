@@ -1,0 +1,13 @@
+id: to-issues-negative-001
+name: to-issues negative trigger (routes elsewhere)
+description: A confusable prompt that should route to 'to-prd', not 'to-issues'.
+tags: [negative-trigger, routing]
+inputs:
+  prompt: "Turn this conversation into a PRD."
+graders:
+  - type: skill_invocation
+    name: routes_to_to-prd_not_to-issues
+    config:
+      mode: any_order
+      required_skills: [to-prd]
+      allow_extra: false

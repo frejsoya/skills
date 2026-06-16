@@ -1,0 +1,13 @@
+id: tdd-negative-001
+name: tdd negative trigger (routes elsewhere)
+description: A confusable prompt that should route to 'diagnose', not 'tdd'.
+tags: [negative-trigger, routing]
+inputs:
+  prompt: "This function returns the wrong value on empty input — help me debug it."
+graders:
+  - type: skill_invocation
+    name: routes_to_diagnose_not_tdd
+    config:
+      mode: any_order
+      required_skills: [diagnose]
+      allow_extra: false
