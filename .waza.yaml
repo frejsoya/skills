@@ -1,0 +1,6 @@
+# waza workspace config — https://github.com/microsoft/waza
+# Eval suites live under evals/<skill>/eval.yaml with tasks/*.yaml.
+files:
+  evalFile: eval.yaml
+  taskGlob: tasks/*.yaml
+  taskFileSuffix: .yaml

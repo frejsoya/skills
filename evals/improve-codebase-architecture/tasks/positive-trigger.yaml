@@ -1,0 +1,16 @@
+id: improve-codebase-architecture-positive-001
+name: improve-codebase-architecture positive trigger
+description: A prompt that should route to the improve-codebase-architecture skill.
+tags: [positive-trigger, routing]
+inputs:
+  prompt: "These two modules are too coupled — how should I restructure them?"
+expected:
+  outcomes:
+    - type: task_completed
+graders:
+  - type: skill_invocation
+    name: routes_to_improve-codebase-architecture
+    config:
+      mode: any_order
+      required_skills: [improve-codebase-architecture]
+      allow_extra: true

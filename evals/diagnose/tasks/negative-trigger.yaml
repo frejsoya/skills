@@ -1,0 +1,13 @@
+id: diagnose-negative-001
+name: diagnose negative trigger (routes elsewhere)
+description: A confusable prompt that should route to 'tdd', not 'diagnose'.
+tags: [negative-trigger, routing]
+inputs:
+  prompt: "How should I model errors here — result or exceptions?"
+graders:
+  - type: skill_invocation
+    name: routes_to_tdd_not_diagnose
+    config:
+      mode: any_order
+      required_skills: [tdd]
+      allow_extra: false

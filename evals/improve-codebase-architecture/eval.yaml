@@ -1,0 +1,23 @@
+# Routing eval for the 'improve-codebase-architecture' skill — does the right skill fire for a prompt?
+name: improve-codebase-architecture-routing-eval
+description: |
+  Trigger/routing accuracy for the improve-codebase-architecture skill: positive prompts must invoke it,
+  confusable prompts must not. Generated from evals/trigger-cases.md.
+skill: improve-codebase-architecture
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: mock          # switch to copilot-sdk for real model-graded routing
+  model: claude-sonnet-4-20250514
+
+metrics:
+  - name: trigger_accuracy
+    weight: 1.0
+    threshold: 0.9
+    description: Fires on positive prompts, stays silent on negative ones.
+
+tasks:
+  - "tasks/*.yaml"

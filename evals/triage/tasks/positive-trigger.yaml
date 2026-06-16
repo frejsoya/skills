@@ -1,0 +1,16 @@
+id: triage-positive-001
+name: triage positive trigger
+description: A prompt that should route to the triage skill.
+tags: [positive-trigger, routing]
+inputs:
+  prompt: "Triage the incoming bug reports and label them."
+expected:
+  outcomes:
+    - type: task_completed
+graders:
+  - type: skill_invocation
+    name: routes_to_triage
+    config:
+      mode: any_order
+      required_skills: [triage]
+      allow_extra: true

@@ -1,0 +1,16 @@
+id: grill-with-docs-positive-001
+name: grill-with-docs positive trigger
+description: A prompt that should route to the grill-with-docs skill.
+tags: [positive-trigger, routing]
+inputs:
+  prompt: "Stress-test my plan against our domain model and update the ADRs."
+expected:
+  outcomes:
+    - type: task_completed
+graders:
+  - type: skill_invocation
+    name: routes_to_grill-with-docs
+    config:
+      mode: any_order
+      required_skills: [grill-with-docs]
+      allow_extra: true

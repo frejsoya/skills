@@ -1,0 +1,13 @@
+id: triage-negative-001
+name: triage negative trigger (no skill)
+description: An unrelated prompt where no skill (and definitely not triage) should fire.
+tags: [negative-trigger, routing]
+inputs:
+  prompt: "Rename this variable across the codebase."
+graders:
+  - type: skill_invocation
+    name: no_skill_fires
+    config:
+      mode: exact_match
+      required_skills: []
+      allow_extra: false

@@ -1,0 +1,16 @@
+id: to-prd-positive-001
+name: to-prd positive trigger
+description: A prompt that should route to the to-prd skill.
+tags: [positive-trigger, routing]
+inputs:
+  prompt: "Turn this conversation into a PRD."
+expected:
+  outcomes:
+    - type: task_completed
+graders:
+  - type: skill_invocation
+    name: routes_to_to-prd
+    config:
+      mode: any_order
+      required_skills: [to-prd]
+      allow_extra: true

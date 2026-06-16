@@ -1,0 +1,16 @@
+id: prototype-positive-001
+name: prototype positive trigger
+description: A prompt that should route to the prototype skill.
+tags: [positive-trigger, routing]
+inputs:
+  prompt: "Let me play with this state machine before I commit to the design."
+expected:
+  outcomes:
+    - type: task_completed
+graders:
+  - type: skill_invocation
+    name: routes_to_prototype
+    config:
+      mode: any_order
+      required_skills: [prototype]
+      allow_extra: true

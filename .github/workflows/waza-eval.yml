@@ -1,0 +1,24 @@
+name: waza-eval
+
+# Model-graded routing evals (microsoft/waza). Opt-in: the default suites use the
+# `mock` executor (no model creds) as a schema/harness smoke test. For real
+# routing evaluation, switch eval.yaml `executor:` to `copilot-sdk` and provide
+# the relevant credentials, then run on a schedule or dispatch.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'evals/**'
+      - '.waza.yaml'
+
+jobs:
+  routing-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install waza
+        run: curl -fsSL https://raw.githubusercontent.com/microsoft/waza/main/install.sh | bash
+      - name: Run routing eval suites (mock executor)
+        run: make waza
