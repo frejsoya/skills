@@ -112,7 +112,7 @@ dollars at most (≈$1–3 on Sonnet, well under $1 on Haiku). **Calibrate first
 
 - **mock** (default) — no credentials, no cost; CI uses this.
 - **GitHub Copilot** (incl. the free tier) — `EXECUTOR=copilot-sdk`, `GITHUB_TOKEN`
-  set; pick a model the plan serves.
+  set; pick a model the plan serves. Full steps below.
 - **Anthropic / Ollama / Azure via an OpenAI-compatible proxy** — `EXECUTOR=copilot-sdk`
   with `COPILOT_BASE_URL` pointing at the proxy (e.g. LiteLLM in front of the
   Anthropic API, or local Ollama on `:11434/v1`). Pay only the provider's token
@@ -121,6 +121,45 @@ dollars at most (≈$1–3 on Sonnet, well under $1 on Haiku). **Calibrate first
 **Adding a skill's suite:** copy an existing `evals/<skill>/` (or `waza new eval
 <skill>`), set `skill:`, and write positive/negative prompts. `make integrity`
 reports routing coverage so gaps are visible.
+
+### Running against the Copilot SDK
+
+1. **Install waza** (not needed for `mock`):
+   ```sh
+   curl -fsSL https://raw.githubusercontent.com/microsoft/waza/main/install.sh | bash
+   ```
+   (or build from source — Go 1.26+ and `git lfs`.)
+2. **Authenticate Copilot** (the `copilot-sdk` executor wraps the bundled Copilot CLI):
+   ```sh
+   copilot auth login        # interactive, or…
+   export GITHUB_TOKEN=...    # a token with Copilot access (used in CI)
+   ```
+3. **Skill discovery** — each `eval.yaml` sets `skill_directories: [skills/engineering]`,
+   so run from the **repo root** (which `make waza` does). If you invoke `waza run`
+   from elsewhere, adjust that path (or point it at the flat install store
+   `~/.agents/skills`).
+4. **Calibrate one suite first** to read real token cost:
+   ```sh
+   make waza-calibrate SUITE=tdd EXECUTOR=copilot-sdk MODEL=claude-haiku-4-5
+   ```
+5. **Run the whole suite** once you're happy with the cost:
+   ```sh
+   make waza EXECUTOR=copilot-sdk MODEL=claude-haiku-4-5
+   # or a single suite directly:
+   waza run evals/tdd/eval.yaml --executor copilot-sdk --model claude-haiku-4-5 -v
+   ```
+6. **Compare two runs** (e.g. before/after a skill edit, or two models):
+   ```sh
+   waza run evals/tdd/eval.yaml --executor copilot-sdk --output before.json
+   # …edit the skill…
+   waza run evals/tdd/eval.yaml --executor copilot-sdk --output after.json
+   waza compare before.json after.json
+   ```
+
+`MODEL` is the provider's model id — via Copilot use the names Copilot serves
+(e.g. `claude-sonnet-4`, `gpt-4o`); the free tier exposes a limited set, so pick
+one it offers. For a non-Copilot backend, use the proxy profile above instead of
+steps 1–2.
 
 The deterministic suite (§1–3) stays the fast first gate; waza is the deep,
 model-in-the-loop gate that lets you evaluate skill changes for routing drift.
