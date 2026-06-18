@@ -57,6 +57,8 @@ help:
 	@echo '  make eval            integrity + lint + links + vendor-check + metrics'
 	@echo '  make check-ocaml     parse ocaml code blocks (opt-in; needs OCaml toolchain)'
 	@echo '  make waza            run model-graded routing evals (opt-in; needs waza)'
+	@echo '  make waza-calibrate  run ONE suite verbose to read real token cost first'
+	@echo '    vars: EXECUTOR=mock|copilot-sdk  MODEL=<id>  TRIALS=<n>  SUITE=<skill>'
 	@echo
 	@echo 'Sources (see sources/README.md):'
 	@echo '  make fork-status     how far skills/ is behind mattpocock/skills upstream'
@@ -101,12 +103,32 @@ vendor-check:
 	@$(EVAL) vendor-check
 
 # Model-graded routing evals (microsoft/waza). Skips cleanly if waza isn't installed.
-# Default suites use executor: mock; set executor: copilot-sdk in eval.yaml for real runs.
+# Override model/executor/trials without editing the 9 eval.yaml files, e.g.:
+#   make waza EXECUTOR=copilot-sdk MODEL=claude-haiku-4-5
+#   make waza-calibrate SUITE=tdd EXECUTOR=copilot-sdk MODEL=claude-haiku-4-5
+# (real runs need a provider: GITHUB_TOKEN for Copilot, or COPILOT_BASE_URL for an
+#  OpenAI-compatible proxy in front of Anthropic/Ollama. mock makes no API calls.)
+EXECUTOR ?= mock
+MODEL    ?=
+TRIALS   ?= 1
+SUITE    ?= tdd
+WAZA_FLAGS = --executor $(EXECUTOR) --trials $(TRIALS) $(if $(MODEL),--model $(MODEL))
+
 waza:
 	@if ! command -v waza >/dev/null 2>&1; then \
 	  echo "waza not installed — https://github.com/microsoft/waza (see evals/README.md)"; exit 0; \
 	fi; \
-	rc=0; for e in evals/*/eval.yaml; do echo "== $$e =="; waza run "$$e" || rc=1; done; exit $$rc
+	rc=0; for e in evals/*/eval.yaml; do echo "== $$e =="; waza run "$$e" $(WAZA_FLAGS) || rc=1; done; exit $$rc
+
+# Run ONE suite verbose to read real token usage/cost before running all 18 tasks.
+# Use a real executor + model to get actual numbers, e.g.:
+#   make waza-calibrate SUITE=tdd EXECUTOR=copilot-sdk MODEL=claude-haiku-4-5
+waza-calibrate:
+	@if ! command -v waza >/dev/null 2>&1; then echo "waza not installed — see evals/README.md"; exit 0; fi; \
+	echo "Calibrating evals/$(SUITE)/eval.yaml (executor=$(EXECUTOR), model=$(if $(MODEL),$(MODEL),<eval.yaml default>), trials=$(TRIALS))"; \
+	$(if $(filter mock,$(EXECUTOR)),echo "NOTE: executor=mock makes no API calls / costs nothing — set EXECUTOR=copilot-sdk for real token usage.";,) \
+	waza run "evals/$(SUITE)/eval.yaml" $(WAZA_FLAGS) --verbose --output ".waza-calibrate-$(SUITE).json"; \
+	echo "Per-task token usage is in the output above and .waza-calibrate-$(SUITE).json — multiply by 18 tasks (× trials) for a full run."
 
 # alias kept so `make check` in CI runs the full deterministic gate
 check-all: integrity check links vendor-check
@@ -123,7 +145,7 @@ REF            ?= origin/main
 # rsync flags: mirror upstream subdir, drop VCS noise.
 RSYNC_FLAGS := -a --delete --exclude '.git'
 
-.PHONY: vendor-update vendor-diff vendor-status fork-status waza _vendor-fetch
+.PHONY: vendor-update vendor-diff vendor-status fork-status waza waza-calibrate _vendor-fetch
 
 fork-status:
 	@git fetch --quiet upstream 2>/dev/null || true; \
