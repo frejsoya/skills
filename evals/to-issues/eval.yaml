@@ -11,7 +11,7 @@ config:
   timeout_seconds: 300
   parallel: false
   executor: mock          # switch to copilot-sdk for real model-graded routing
-  model: claude-sonnet-4-20250514
+  model: claude-haiku-4-5  # cheap default; override per-run: make waza MODEL=claude-sonnet-4-6
 
 metrics:
   - name: trigger_accuracy

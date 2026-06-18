@@ -87,18 +87,36 @@ Routing is asserted with waza's **`skill_invocation`** grader
 derived from [`trigger-cases.md`](./trigger-cases.md) — that table stays the
 human-readable index; these YAML suites are the executable form.
 
-**Run it:**
+**Run it (no per-file editing — override via Make vars, passed as `waza run` flags):**
 
 ```sh
-make waza                          # every evals/*/eval.yaml (skips if waza absent)
-waza run evals/tdd/eval.yaml -v    # a single suite
-waza compare a.json b.json         # compare two models' results
+make waza                                   # all suites, executor=mock (free, no calls)
+make waza EXECUTOR=copilot-sdk MODEL=claude-haiku-4-5   # real run
+make waza-calibrate SUITE=tdd EXECUTOR=copilot-sdk MODEL=claude-haiku-4-5  # one suite, verbose, to read cost first
+waza compare a.json b.json                  # compare two models' results
 ```
 
-- Suites default to **`executor: mock`** (no credentials) — a schema/harness smoke
-  test, also what CI runs (`.github/workflows/waza-eval.yml`).
-- For **real** routing evaluation, set `executor: copilot-sdk` (and a `model:`) in
-  the suite's `eval.yaml` and provide credentials.
+Vars: `EXECUTOR` (`mock`|`copilot-sdk`), `MODEL` (provider's model id), `TRIALS`,
+`SUITE`. The eval.yaml files default to `executor: mock` / `model: claude-haiku-4-5`;
+the flags override them so you never hand-edit 9 files.
+
+### Cost & calibration
+
+The suite is **18 tasks** (9 skills × positive+negative) × `TRIALS`. Graders are
+deterministic (`skill_invocation`) — no extra model calls. A full run is a few
+dollars at most (≈$1–3 on Sonnet, well under $1 on Haiku). **Calibrate first:**
+`make waza-calibrate` runs one suite verbose and writes token usage to
+`.waza-calibrate-<suite>.json` — multiply by 18 (× trials).
+
+### Provider profiles
+
+- **mock** (default) — no credentials, no cost; CI uses this.
+- **GitHub Copilot** (incl. the free tier) — `EXECUTOR=copilot-sdk`, `GITHUB_TOKEN`
+  set; pick a model the plan serves.
+- **Anthropic / Ollama / Azure via an OpenAI-compatible proxy** — `EXECUTOR=copilot-sdk`
+  with `COPILOT_BASE_URL` pointing at the proxy (e.g. LiteLLM in front of the
+  Anthropic API, or local Ollama on `:11434/v1`). Pay only the provider's token
+  cost; Ollama is free/unlimited.
 
 **Adding a skill's suite:** copy an existing `evals/<skill>/` (or `waza new eval
 <skill>`), set `skill:`, and write positive/negative prompts. `make integrity`
