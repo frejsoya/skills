@@ -35,13 +35,18 @@ if [ -z "${AGENT_DIRS:-}" ]; then
   done
 fi
 
-discover() {
+discover_raw() {
   find "$ROOT/skills" -iname 'skill.md' -not -path '*/deprecated/*' \
     -exec dirname {} \; 2>/dev/null | sort
   if [ "$INCLUDE_VENDOR" = "1" ] && [ -d "$ROOT/vendor" ]; then
     find "$ROOT/vendor" -iname 'skill.md' -exec dirname {} \; 2>/dev/null | sort
   fi
 }
+
+# The install surface is flat (one symlink per skill name), so when sources
+# overlap the first in discover order wins: fork skills, then vendors sorted.
+discover() { discover_raw | awk -F/ '!seen[$NF]++'; }
+dupes()    { discover_raw | awk -F/ 'seen[$NF]++'; }
 
 green() { printf '\033[32m%s\033[0m' "$1"; }
 yellow() { printf '\033[33m%s\033[0m' "$1"; }
@@ -82,6 +87,9 @@ case "$CMD" in
     done < <(discover)
     echo "$(green "✓") store $(bold "$STORE"): linked $linked, repointed $relinked, backed up $backed"
     [ -d "$backup" ] && echo "  $(yellow "backups:") $backup"
+    while IFS= read -r skip; do [ -z "$skip" ] && continue
+      echo "  $(yellow "name collision:") skipped ${skip#"$ROOT"/} $(dim "(an earlier source provides '$(basename "$skip")')")"
+    done < <(dupes)
     # Phase 2: each agent dir -> store
     for adir in $AGENT_DIRS; do
       mkdir -p "$adir"; fwd=0; abackup="$adir/.skills-backup-$ts"

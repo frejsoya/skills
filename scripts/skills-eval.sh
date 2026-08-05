@@ -16,8 +16,9 @@
 #   skills-eval.sh all          # integrity + lint + links + vendor-check + metrics
 #
 # Lint/hygiene apply to the FORKED skills (skills/ — our diverged copy of
-# mattpocock/skills that we edit). VENDORED skills (vendor/, verbatim from avsm)
-# are measured in metrics but never fail lint — fixes go upstream. See sources/.
+# mattpocock/skills that we edit). VENDORED skills (vendor/, verbatim from
+# upstream marketplaces) are measured in metrics but never fail lint — fixes
+# go upstream. See sources/.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -171,11 +172,23 @@ integrity() {
     [ "$cov" -lt "$total" ] && warn "routing-eval covers $cov/$total skills — add trigger-cases for the rest"
   fi
 
-  # 5. name uniqueness across the install surface (collisions clobber symlinks)
+  # 5. name uniqueness across the install surface. Within one source a
+  #    duplicate is an error (would clobber on install). Across sources it's
+  #    expected when upstreams overlap — install keeps the first in discover
+  #    order (fork, then vendors sorted) and skips the rest — so just surface
+  #    which copy wins.
   echo "$(dim "• name uniqueness (fork + vendored)")"
-  { fork; vendored; } | xargs -n1 basename 2>/dev/null | sort | uniq -d | while IFS= read -r dup; do
-    [ -n "$dup" ] && err "duplicate skill name '$dup' (would clobber on install)"
-  done
+  local all dup paths n_src; all="$(mktemp)"; { fork; vendored; } > "$all"
+  while IFS= read -r dup; do [ -z "$dup" ] && continue
+    paths="$(grep -E "/$dup\$" "$all")"
+    n_src="$(echo "$paths" | sed -E "s#^$ROOT/skills/.*#fork#; s#^$ROOT/vendor/([^/]+)/.*#\1#" | sort -u | wc -l | tr -d ' ')"
+    if [ "$n_src" -gt 1 ]; then
+      warn "duplicate skill name '$dup' across sources — install keeps $(echo "$paths" | head -1 | sed "s#^$ROOT/##")"
+    else
+      err "duplicate skill name '$dup' within one source (would clobber on install)"
+    fi
+  done < <(awk -F/ '{print $NF}' "$all" | sort | uniq -d)
+  rm -f "$all"
 
   echo
   echo "integrity: $(red "$((ERRORS-e0)) error(s)"), $(yellow "$((WARNS-w0)) warning(s)")"
@@ -301,7 +314,7 @@ metrics() {
   while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" fork; fork_n=$((fork_n+1)); done < <(fork)
   while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" vend; vend_n=$((vend_n+1)); done < <(vendored)
   echo
-  echo "**Totals**: $total skills ($fork_n forked from mattpocock, $vend_n vendored from avsm) · ~$tok_total tokens total · $no_trig missing a trigger phrase · $big over 500 lines · $heavy over ~5k tokens."
+  echo "**Totals**: $total skills ($fork_n forked from mattpocock, $vend_n vendored) · ~$tok_total tokens total · $no_trig missing a trigger phrase · $big over 500 lines · $heavy over ~5k tokens."
 }
 
 # Tier 4 #14 — syntax-check ocaml code blocks (opt-in; needs a toolchain).
@@ -344,34 +357,47 @@ check_ocaml() {
   [ "$CHK_FAIL" -gt 0 ] && return 1 || return 0
 }
 
-# Tier 5 — vendoring integrity: locks well-formed + vendored tree not hand-edited
+# Tier 5 — vendoring integrity: locks well-formed + vendored trees not
+# hand-edited. Every sources/*.lock except the fork lock describes a vendored
+# set pinned at vendor/<name>/<basename of subdir>/.
 vendor_check() {
   echo "$(green "vendor-check") — lock well-formedness + drift"
   local e0=$ERRORS w0=$WARNS
+  local fl="$ROOT/sources/mattpocock-skills.lock"
   # 1. locks have required fields
   echo "$(dim "• lock files")"
-  local fl="$ROOT/sources/mattpocock-skills.lock" vl="$ROOT/sources/ocaml-claude-marketplace.lock"
   [ -f "$fl" ] || err "missing sources/mattpocock-skills.lock"
-  [ -f "$vl" ] || err "missing sources/ocaml-claude-marketplace.lock"
   [ -f "$fl" ] && for f in upstream policy fork-point; do grep -q "^$f:" "$fl" || err "mattpocock lock missing '$f:'"; done
-  [ -f "$vl" ] && for f in upstream subdir commit; do grep -q "^$f:" "$vl" || err "avsm lock missing '$f:'"; done
-  # 2. drift: does vendor/ still match the pinned commit? (needs the cache)
-  echo "$(dim "• drift (vendored tree vs pinned commit)")"
-  local cache="$ROOT/.vendor-cache/ocaml-claude-marketplace"
-  local sub sha vdir; sub="$(awk '/^subdir:/{print $2}' "$vl" 2>/dev/null)"
-  sha="$(awk '/^commit:/{print $2}' "$vl" 2>/dev/null)"
-  vdir="$ROOT/vendor/ocaml-claude-marketplace/ocaml-dev"
-  if [ -d "$cache/.git" ] && [ -n "$sha" ]; then
-    git -C "$cache" checkout -q --detach "$sha" 2>/dev/null || true
-    if diff -rq --exclude='.git' "$cache/$sub" "$vdir" >/tmp/vdrift 2>&1; then
-      echo "  $(green "✓") vendored tree matches pinned $sha"
+  local vl name found=0
+  for vl in "$ROOT"/sources/*.lock; do
+    [ -f "$vl" ] || continue; [ "$vl" = "$fl" ] && continue
+    found=1; name="$(basename "$vl" .lock)"
+    for f in upstream subdir commit; do grep -q "^$f:" "$vl" || err "$name lock missing '$f:'"; done
+    [ -d "$ROOT/vendor/$name" ] || err "$name lock has no vendor/$name/ tree"
+  done
+  [ "$found" -eq 1 ] || err "no vendor lock files under sources/"
+  # 2. drift: does each vendor/ tree still match its pinned commit? (needs cache)
+  echo "$(dim "• drift (vendored trees vs pinned commits)")"
+  local cache sub sha vdir drift
+  for vl in "$ROOT"/sources/*.lock; do
+    [ -f "$vl" ] || continue; [ "$vl" = "$fl" ] && continue
+    name="$(basename "$vl" .lock)"; cache="$ROOT/.vendor-cache/$name"
+    sub="$(awk '/^subdir:/{print $2}' "$vl" 2>/dev/null)"
+    sha="$(awk '/^commit:/{print $2}' "$vl" 2>/dev/null)"
+    vdir="$ROOT/vendor/$name/$(basename "$sub")"
+    if [ -d "$cache/.git" ] && [ -n "$sha" ]; then
+      git -C "$cache" checkout -q --detach "$sha" 2>/dev/null || true
+      drift="$(mktemp)"
+      if diff -rq --exclude='.git' "$cache/$sub" "$vdir" >"$drift" 2>&1; then
+        echo "  $(green "✓") $name matches pinned $sha"
+      else
+        while IFS= read -r l; do warn "$name drift: $l"; done < <(head -20 "$drift")
+        warn "$name: vendored tree differs from pin — was it hand-edited? re-sync with 'make vendor-update-$name'"
+      fi; rm -f "$drift"
     else
-      sed 's/^/  /' /tmp/vdrift | head -20 | while IFS= read -r l; do warn "drift: ${l#  }"; done
-      warn "vendored tree differs from pin — was it hand-edited? re-sync with 'make vendor-update'"
-    fi; rm -f /tmp/vdrift
-  else
-    echo "  $(dim "no local cache — run 'make vendor-update' once to enable drift detection")"
-  fi
+      echo "  $(dim "$name: no local cache — run 'make vendor-update-$name' once to enable drift detection")"
+    fi
+  done
   echo
   echo "vendor-check: $(red "$((ERRORS-e0)) error(s)"), $(yellow "$((WARNS-w0)) warning(s)")"
   [ "$((ERRORS-e0))" -gt 0 ] && return 1 || return 0

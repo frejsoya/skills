@@ -1,0 +1,9 @@
+{
+  "name": "monopam",
+  "description": "Claude Code skills for monopam OCaml monorepos: monorepo sync, commit and TODO.md test-first workflows, git commit messages and history rewriting, testing (alcobar fuzz, cram, interop oracles, MDX doc examples), library design patterns (encodings, protocols, functors), performance profiling, project init, and library skills for console widgets, ocaml-observe logging, HTTP requests, READMEs, Homebrew bottling, and concurrent-session safety",
+  "version": "1.0.0",
+  "author": {
+    "name": "Thomas Gazagnaire",
+    "email": "thomas@gazagnaire.org"
+  }
+}
