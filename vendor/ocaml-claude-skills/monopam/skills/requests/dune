@@ -1,0 +1,14 @@
+(mdx
+ (files SKILL.md)
+ (libraries
+  requests
+  requests-eio
+  requests.features
+  requests-eio.cli
+  nox-http
+  eio
+  eio.core
+  eio.unix
+  eio_main
+  cmdliner
+  fmt))
