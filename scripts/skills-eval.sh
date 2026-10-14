@@ -16,7 +16,7 @@
 #   skills-eval.sh all          # integrity + lint + links + vendor-check + metrics
 #
 # Lint/hygiene apply to the FORKED skills (skills/ — our diverged copy of
-# mattpocock/skills that we edit). VENDORED skills (vendor/, verbatim from avsm)
+# mattpocock/skills that we edit). VENDORED skills (vendor/, verbatim upstreams)
 # are measured in metrics but never fail lint — fixes go upstream. See sources/.
 set -uo pipefail
 
@@ -301,7 +301,7 @@ metrics() {
   while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" fork; fork_n=$((fork_n+1)); done < <(fork)
   while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" vend; vend_n=$((vend_n+1)); done < <(vendored)
   echo
-  echo "**Totals**: $total skills ($fork_n forked from mattpocock, $vend_n vendored from avsm) · ~$tok_total tokens total · $no_trig missing a trigger phrase · $big over 500 lines · $heavy over ~5k tokens."
+  echo "**Totals**: $total skills ($fork_n forked from mattpocock, $vend_n vendored) · ~$tok_total tokens total · $no_trig missing a trigger phrase · $big over 500 lines · $heavy over ~5k tokens."
 }
 
 # Tier 4 #14 — syntax-check ocaml code blocks (opt-in; needs a toolchain).
@@ -350,28 +350,19 @@ vendor_check() {
   local e0=$ERRORS w0=$WARNS
   # 1. locks have required fields
   echo "$(dim "• lock files")"
-  local fl="$ROOT/sources/mattpocock-skills.lock" vl="$ROOT/sources/ocaml-claude-marketplace.lock"
+  local fl="$ROOT/sources/mattpocock-skills.lock"
   [ -f "$fl" ] || err "missing sources/mattpocock-skills.lock"
-  [ -f "$vl" ] || err "missing sources/ocaml-claude-marketplace.lock"
   [ -f "$fl" ] && for f in upstream policy fork-point; do grep -q "^$f:" "$fl" || err "mattpocock lock missing '$f:'"; done
-  [ -f "$vl" ] && for f in upstream subdir commit; do grep -q "^$f:" "$vl" || err "avsm lock missing '$f:'"; done
-  # 2. drift: does vendor/ still match the pinned commit? (needs the cache)
-  echo "$(dim "• drift (vendored tree vs pinned commit)")"
-  local cache="$ROOT/.vendor-cache/ocaml-claude-marketplace"
-  local sub sha vdir; sub="$(awk '/^subdir:/{print $2}' "$vl" 2>/dev/null)"
-  sha="$(awk '/^commit:/{print $2}' "$vl" 2>/dev/null)"
-  vdir="$ROOT/vendor/ocaml-claude-marketplace/ocaml-dev"
-  if [ -d "$cache/.git" ] && [ -n "$sha" ]; then
-    git -C "$cache" checkout -q --detach "$sha" 2>/dev/null || true
-    if diff -rq --exclude='.git' "$cache/$sub" "$vdir" >/tmp/vdrift 2>&1; then
-      echo "  $(green "✓") vendored tree matches pinned $sha"
-    else
-      sed 's/^/  /' /tmp/vdrift | head -20 | while IFS= read -r l; do warn "drift: ${l#  }"; done
-      warn "vendored tree differs from pin — was it hand-edited? re-sync with 'make vendor-update'"
-    fi; rm -f /tmp/vdrift
-  else
-    echo "  $(dim "no local cache — run 'make vendor-update' once to enable drift detection")"
-  fi
+  # 2. vendored sources: lock fields + drift vs pinned commit (scripts/vendor.sh)
+  echo "$(dim "• vendored sources (locks + drift)")"
+  local line
+  while IFS= read -r line; do
+    case "$line" in
+      ERROR\ *)  err "${line#ERROR }";;
+      *WARN\ *)  warn "${line#*WARN }";;
+      *)         echo "$line";;
+    esac
+  done < <("$ROOT/scripts/vendor.sh" check)
   echo
   echo "vendor-check: $(red "$((ERRORS-e0)) error(s)"), $(yellow "$((WARNS-w0)) warning(s)")"
   [ "$((ERRORS-e0))" -gt 0 ] && return 1 || return 0
