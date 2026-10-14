@@ -20,20 +20,20 @@ expertise.
 - **License**: ISC (see upstream `LICENSE`)
 - **Pinned commit**: recorded in [`sources/ocaml-claude-marketplace.lock`](../sources/ocaml-claude-marketplace.lock)
 
-### Updating
+## Updating
 
-From the repo root:
+From the repo root (omit `SOURCE` to act on every vendored source):
 
 ```sh
-make vendor-status   # show the pinned commit
-make vendor-diff     # show what upstream main changed vs our copy
-make vendor-update   # sync to latest upstream main and rewrite the lock
+make vendor-status SOURCE=<name>   # show the pinned commit
+make vendor-diff   SOURCE=<name>   # show what upstream main changed vs our copy
+make vendor-update SOURCE=<name>   # sync to latest upstream main and rewrite the lock
 ```
 
 To pin a specific commit instead of latest main:
 
 ```sh
-make vendor-update REF=<sha>
+make vendor-update SOURCE=<name> REF=<sha>
 ```
 
 **Do not hand-edit files under `vendor/`** — they'll be overwritten on the next
