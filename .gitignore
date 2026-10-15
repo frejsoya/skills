@@ -1,2 +1,6 @@
 .vendor-cache/
 .waza-calibrate-*.json
+.claude/worktrees
+TODO.md
+.pi-subagents/
+.DS_Store
