@@ -59,6 +59,24 @@ let test_create_user_makes_user_retrievable () =
   Alcotest.(check string) "name matches" "Alice" retrieved.name
 ```
 
+**Tautological tests**: The expected value restates the implementation, so the test passes by construction.
+
+```ocaml
+(* BAD: expected value recomputed the way the code computes it *)
+let test_total () =
+  let items = [ 10; 5 ] in
+  let expected = List.fold_left ( + ) 0 items in
+  Alcotest.(check int) "sums line items" expected (Cart.total items)
+
+(* GOOD: expected value is an independent, known literal *)
+let test_total () =
+  Alcotest.(check int) "sums line items" 15 (Cart.total [ 10; 5 ])
+```
+
+A property is not tautological when it states a law instead of re-running the
+code: `Cart.total (xs @ ys) = Cart.total xs + Cart.total ys` checks an
+independent fact about `total` (see [property-testing.md](property-testing.md)).
+
 ## A note on types
 
 OCaml's type checker already proves a lot of what dynamic-language tests have to

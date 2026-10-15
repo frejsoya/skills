@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Types-first test-driven development for OCaml. Design the .mli and make illegal states unrepresentable first, then red-green-refactor the residual behavior (Alcotest examples or QCheck properties). Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration/property tests, or asks for test-first development.
+description: Types-first test-driven development for OCaml. Design the .mli and make illegal states unrepresentable first, then drive the residual behavior red → green at agreed seams (Alcotest examples or QCheck properties). Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration/property tests, or asks for test-first development.
 ---
 
 # Test-Driven Development
@@ -43,6 +43,25 @@ behavior the compiler and contracts don't already pin down.
 
 See [tests.md](tests.md) for examples, [property-testing.md](property-testing.md) for QCheck/Alcobar (often the better tool for pure functions), [contracts-gospel.md](contracts-gospel.md) for specifying & verifying invariants with Gospel, and [mocking.md](mocking.md) for mocking guidelines.
 
+## Seams: where tests go
+
+A **seam** is the public boundary you test at: the interface where you observe behavior without reaching inside. In OCaml that is usually a module's `.mli` (or a functor's argument signature). Tests live at seams, never against internals.
+
+**Test only at pre-agreed seams.** Before writing any test, write down the seams under test and confirm them with the user. No test is written at an unconfirmed seam. Give each proposed seam a one-line note on what it catches and what it misses.
+
+When the shape of that interface is itself in question (how deep the module is, where the seam belongs, what the `.mli` should expose), call the Skill tool with "codebase-design" for the vocabulary: module, interface, depth, seam, adapter. It is a reference to consult, not a session to run.
+
+## Anti-Pattern: Tautological tests
+
+The assertion recomputes the expected value the way the code does, so it passes by construction and can never disagree with the code:
+
+```ocaml
+(* tautological: the expected value is the implementation *)
+Alcotest.(check int) "add" (a + b) (Calc.add a b)
+```
+
+Expected values must come from an independent source of truth: a known-good literal, a worked example, the spec, or a property that states a law rather than re-running the code. See [tests.md](tests.md).
+
 ## Anti-Pattern: Horizontal Slices
 
 **DO NOT write all tests first, then all implementation.** This is "horizontal slicing" - treating RED as "write all tests" and GREEN as "write all code."
@@ -72,20 +91,19 @@ RIGHT (vertical):
 
 ### 1. Planning
 
-When exploring the codebase, use the project's domain glossary so that test names and interface vocabulary match the project's language, and respect ADRs in the area you're touching. Use the build/test/format commands in `docs/agents/commands.md` if it exists (run `test` after each cycle); otherwise fall back to the `dune` defaults shown here.
+When exploring the codebase, read `GLOSSARY.md` (if it exists) so that test names and interface vocabulary match the project's language, and respect ADRs in the area you're touching. Use the build/test/format commands in `docs/agents/commands.md` if it exists (run `test` after each cycle); otherwise fall back to the `dune` defaults shown here.
 
 Before writing any code:
 
 - [ ] Draft the `.mli` / module signature first; make illegal states unrepresentable in the types
 - [ ] Decide the error convention for this interface (`result`/`option` vs. exceptions — see [tests.md](tests.md))
 - [ ] Confirm with user what interface changes are needed
-- [ ] Confirm with user which behaviors to test (prioritize the logic the types *can't* capture)
-- [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)
-- [ ] Design interfaces for [testability](interface-design.md)
+- [ ] Agree the seams under test with the user, each with a catches/misses note (prioritize the logic the types *can't* capture)
+- [ ] Check the module depth and interface against the `codebase-design` vocabulary (small interface, deep implementation; designed for testability)
 - [ ] List the behaviors to test (not implementation steps)
 - [ ] Get user approval on the plan
 
-Ask: "What should the public interface (`.mli`) look like? Which behaviors are most important to test?"
+Ask: "What should the public interface (`.mli`) look like, and which seams should we test?"
 
 **You can't test everything.** Confirm with the user exactly which behaviors matter most. Focus testing effort on critical paths and complex logic, not every possible edge case.
 
@@ -119,17 +137,9 @@ Rules:
   examples — see [property-testing.md](property-testing.md). A property can be your
   RED step just like an example can.
 
-### 4. Refactor
+### 4. Refactoring is not part of the loop
 
-After all tests pass, look for [refactor candidates](refactoring.md):
-
-- [ ] Extract duplication
-- [ ] Deepen modules (move complexity behind simple interfaces)
-- [ ] Tighten the `.mli` — make types abstract, drop what callers don't need
-- [ ] Consider what new code reveals about existing code
-- [ ] Run tests after each refactor step
-
-**Never refactor while RED.** Get to GREEN first.
+Refactoring (extracting duplication, deepening modules, tightening the `.mli`) belongs to the review stage (see the `review-diff` skill), not the red → green cycle.
 
 ## Checklist Per Cycle
 

@@ -11,7 +11,7 @@ one-line justification + a concrete fix when the score is below 2.
 | 3 | **Progressive disclosure** | One giant SKILL.md, or details inlined | Mostly fine, some bloat | SKILL.md concise; depth in linked files one level deep |
 | 4 | **Correctness & idiom** | Wrong or non-idiomatic (e.g. OO/TS residue, stray `Lwt`, non-idiomatic OCaml) | Minor idiom slips | Idiomatic OCaml; types-first; no contradictions |
 | 5 | **Concreteness** | No examples | Examples thin or untested-looking | Real, compilable-looking examples that match the prose |
-| 6 | **Consistency** | Terms drift; time-sensitive claims | Minor drift | Stable terminology; no "as of 2026" rot; aligns with `CONTEXT.md` |
+| 6 | **Consistency** | Terms drift; time-sensitive claims | Minor drift | Stable terminology; no "as of 2026" rot; aligns with `GLOSSARY.md` |
 
 **Total /12.** ≥ 10 ship · 7–9 revise the flagged dimensions · < 7 rework.
 
@@ -28,7 +28,7 @@ Verdict: revise (fix #2, #5)
 ## Notes for the judge
 
 - Judge against the repo's own standard in
-  `skills/productivity/write-a-skill/SKILL.md` (description format, < ~100-line
+  `skills/productivity/writing-for-agents/SKILL.md` (description format, < ~100-line
   SKILL.md ideal, references one level deep).
 - For OCaml skills, "correct & idiomatic" means: `.mli`-first, make illegal states
   unrepresentable, `result` for recoverable errors, Eio direct-style, `dune`

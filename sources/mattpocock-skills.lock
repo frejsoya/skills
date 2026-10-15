@@ -3,6 +3,6 @@ remote:     upstream
 policy:     forked & diverged (OCaml/FP adaptation)
 location:   skills/
 update:     git fetch upstream && git merge upstream/main
-fork-point: 694fa30311e02c2639942308513555e61ee84a6f
-date:       2026-06-10 16:01:44 +0100
-subject:    Refine quiz guidelines by standardizing answer length to prevent user clues and enhance assessment integrity.
+fork-point: 49dd158d1076134a641b33efb035946536778336
+date:       2026-10-09 11:56:49 +0100
+subject:    wizard: template fixes (#1220, #1142, #1081, #1041, #1003) (#1237)

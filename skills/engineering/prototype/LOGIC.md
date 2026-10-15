@@ -66,9 +66,22 @@ If the host project has no task runner, just put the command at the top of the p
 
 Give the user the run command. They'll drive it themselves; the interesting moments are when they say "wait, that shouldn't be possible" or "huh, I assumed X would be different" — those are the bugs in the _idea_, which is the whole point. If they want new actions added, add them. Prototypes evolve.
 
-### 7. Capture the answer
+### 7. Capture the answer and the prototype
 
-When the prototype has done its job, the answer to the question is the only thing worth keeping. If the user is around, ask what it taught them. If not, leave a `NOTES.md` next to the prototype so the answer can be filled in (or filled in by you, if you've watched the session) before the prototype gets deleted.
+Once the prototype has answered its question, capture the answer (ask the user what it taught them, or write it down yourself if you watched the session), then capture the prototype the way the [SKILL](SKILL.md) describes. The logic-specific mapping: the validated reducer / machine / function set lifts into the real module (the decision, absorbed); the TUI shell rides along to the throwaway branch that keeps the prototype as a primary source, still runnable there with one `dune exec`.
+
+## Variant: a demo a non-developer can drive
+
+When the person who has to feel the model is not a developer (a designer, a PM, a domain expert), swap the TUI for a small web page over **the same pure module**: a Dream server started by `dune exec`, rendering HTML, with htmx buttons that post an action and swap in the re-rendered state. No JavaScript build, no client-side copy of the logic.
+
+Write it in the domain's language, not the code's, and lay it out top to bottom:
+
+1. **Title and one-line explanation** of what the demo lets you explore (the question from step 1).
+2. **Current state** as a readable panel (labelled fields, not a raw dump), re-rendered after every click, with what just changed called out.
+3. **Free-play buttons**: one per action, always available.
+4. **Guided walkthroughs**: one tab per scenario (happy path, a tricky edge case, an attempt at something illegal), each a short plain-language description plus the ordered buttons to press. Starting a walkthrough resets to a known initial state.
+
+Everything else in this file still applies: the logic module stays pure and liftable, and the page is the throwaway shell.
 
 ## Anti-patterns
 
@@ -76,4 +89,5 @@ When the prototype has done its job, the answer to the question is the only thin
 - **Don't wire it to the real database.** Use an in-memory store unless the question is specifically about persistence.
 - **Don't generalise.** No "what if we wanted to support X later." The prototype answers one question.
 - **Don't blur the logic and the TUI together.** If the reducer / state machine references `Fmt.pr`, prompts, or terminal escape codes, it's no longer portable. Keep the TUI as a thin shell over a pure module.
+- **Don't reimplement the logic in JavaScript for the demo.** The page calls the OCaml module through htmx; a second copy in the browser is no longer the thing being validated.
 - **Don't ship the TUI shell into production.** The shell is optimised for being driven by hand from a terminal. The logic module behind it is the bit worth keeping.
