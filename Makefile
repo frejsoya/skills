@@ -147,8 +147,34 @@ UPSTREAM_SUB_ocaml-claude-marketplace := plugins/ocaml-dev
 
 UPSTREAM_URL_ocaml-claude-skills := https://tangled.org/gazagnaire.org/ocaml-claude-skills
 UPSTREAM_SUB_ocaml-claude-skills := plugins/monopam
+# monopam-tool-specific skills dropped: this workspace vendors with unpac, and
+# the unpac counterparts live in skills/engineering/ (unpac, fork-package).
+# ocaml-protocols and init-ocaml dropped here because they are local overrides
+# that track upstream through sources/overrides/overrides.lock (scripts/merge-overrides.sh).
+# requests dropped (2026-08 review): cohttp-eio owns HTTP.
+VENDOR_EXCLUDE_ocaml-claude-skills := skills/monopam skills/concurrent-claude skills/fork-package skills/ocaml-protocols skills/init-ocaml skills/requests
 
-vdir = vendor/$(1)/$(notdir $(UPSTREAM_SUB_$(1)))
+# DreambigOu's ELI5 — audience-calibrated explanation (kids, managers,
+# engineers, family). Not OCaml, not a workflow: a presentation skill.
+#
+# Vendored WHOLE (subdir '.') because the skill's only sibling worth carrying
+# is the LICENSE — the repo has no plugin dir, its skills live at skills/, so
+# there is no subdir that holds both. UPSTREAM_DIR names the landing dir.
+#
+# eli5-workspace/ dropped: it is the author's own eval harness (a Python
+# runner, its tests, and a results log) that scores the skill against Claude.
+# It is authoring infrastructure for upstream, not part of the skill, and this
+# repo has its own evals/ — vendoring it would install a second, divergent one.
+UPSTREAM_URL_eli5 := https://github.com/DreambigOu/ELI5.git
+UPSTREAM_SUB_eli5 := .
+UPSTREAM_DIR_eli5 := eli5
+VENDOR_EXCLUDE_eli5 := eli5-workspace
+
+# Landing dir under vendor/<name>/. Defaults to the subdir's basename;
+# UPSTREAM_DIR_<name> overrides it (needed when the subdir is the repo root).
+vdirname = $(or $(UPSTREAM_DIR_$(1)),$(notdir $(UPSTREAM_SUB_$(1))))
+vdir     = vendor/$(1)/$(call vdirname,$(1))
+vexcl    = $(foreach e,$(VENDOR_EXCLUDE_$(1)),--exclude '/$(e)')
 
 FORK_LOCK      := sources/mattpocock-skills.lock
 REF            ?= origin/main
@@ -195,6 +221,9 @@ vendor-update-%: _vendor-fetch-%
 	   "$(UPSTREAM_URL_$*)" "$(UPSTREAM_SUB_$*)" "$(call vdir,$*)/" "$$sha" "$$date" "$$subj" > "sources/$*.lock"; \
 	 echo ">> vendored $(call vdir,$*) @ $$sha"; \
 	 echo ">> wrote sources/$*.lock"
+	@if awk -v v="$*" '$$2 == v { f = 1 } END { exit !f }' sources/overrides/overrides.lock; then \
+	   scripts/merge-overrides.sh "$*" "$(UPSTREAM_SUB_$*)"; \
+	 fi
 
 vendor-diff-%: _vendor-fetch-%
 	@echo "== $* =="; \

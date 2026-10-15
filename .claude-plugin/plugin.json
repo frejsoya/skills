@@ -13,6 +13,8 @@
     "./skills/engineering/prototype",
     "./skills/engineering/unpac",
     "./skills/engineering/fork-package",
+    "./skills/engineering/init-ocaml",
+    "./skills/engineering/ocaml-protocols",
     "./skills/productivity/caveman",
     "./skills/productivity/grill-me",
     "./skills/productivity/handoff",
