@@ -1,6 +1,6 @@
-id: to-issues-positive-001
-name: to-issues positive trigger
-description: A prompt that should route to the to-issues skill.
+id: to-tickets-positive-001
+name: to-tickets positive trigger
+description: A prompt that should route to the to-tickets skill.
 tags: [positive-trigger, routing]
 inputs:
   prompt: "Break this plan into independently-grabbable issues."
@@ -12,5 +12,5 @@ graders:
     name: routes_to_to-issues
     config:
       mode: any_order
-      required_skills: [to-issues]
+      required_skills: [to-tickets]
       allow_extra: true

@@ -1,9 +1,9 @@
-# Routing eval for the 'to-prd' skill — does the right skill fire for a prompt?
-name: to-prd-routing-eval
+# Routing eval for the 'to-tickets' skill — does the right skill fire for a prompt?
+name: to-tickets-routing-eval
 description: |
-  Trigger/routing accuracy for the to-prd skill: positive prompts must invoke it,
+  Trigger/routing accuracy for the to-tickets skill: positive prompts must invoke it,
   confusable prompts must not. Generated from evals/trigger-cases.md.
-skill: to-prd
+skill: to-tickets
 version: "1.0"
 
 config:

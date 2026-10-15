@@ -1,6 +1,6 @@
-id: diagnose-positive-001
-name: diagnose positive trigger
-description: A prompt that should route to the diagnose skill.
+id: diagnosing-bugs-positive-001
+name: diagnosing-bugs positive trigger
+description: A prompt that should route to the diagnosing-bugs skill.
 tags: [positive-trigger, routing]
 inputs:
   prompt: "The benchmark regressed 3x since last week; help me find why."
@@ -12,5 +12,5 @@ graders:
     name: routes_to_diagnose
     config:
       mode: any_order
-      required_skills: [diagnose]
+      required_skills: [diagnosing-bugs]
       allow_extra: true

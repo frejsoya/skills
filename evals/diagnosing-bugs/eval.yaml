@@ -1,9 +1,9 @@
-# Routing eval for the 'to-issues' skill — does the right skill fire for a prompt?
-name: to-issues-routing-eval
+# Routing eval for the 'diagnosing-bugs' skill — does the right skill fire for a prompt?
+name: diagnosing-bugs-routing-eval
 description: |
-  Trigger/routing accuracy for the to-issues skill: positive prompts must invoke it,
+  Trigger/routing accuracy for the diagnosing-bugs skill: positive prompts must invoke it,
   confusable prompts must not. Generated from evals/trigger-cases.md.
-skill: to-issues
+skill: diagnosing-bugs
 version: "1.0"
 
 config:

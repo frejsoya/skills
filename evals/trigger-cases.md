@@ -11,19 +11,17 @@ trigger) — fix the description, not the case. `—` means no skill should fire
 |---|---|---|
 | 1 | "Let's build this feature test-first." | tdd |
 | 2 | "Design the `.mli` before we implement the parser." | tdd |
-| 3 | "This function is wrong on empty input — help me debug it." | diagnose |
-| 4 | "The benchmark regressed 3x since last week." | diagnose |
-| 5 | "I don't know this part of the code; give me a map." | zoom-out |
+| 3 | "This function is wrong on empty input — help me debug it." | diagnosing-bugs |
+| 4 | "The benchmark regressed 3x since last week." | diagnosing-bugs |
 | 6 | "These two modules are too coupled — how do I restructure?" | improve-codebase-architecture |
-| 7 | "Turn this conversation into a PRD." | to-prd |
-| 8 | "Break this plan into issues we can pick up." | to-issues |
+| 7 | "Turn this conversation into a PRD." | to-spec |
+| 8 | "Break this plan into issues we can pick up." | to-tickets |
 | 9 | "Triage the incoming bug reports." | triage |
 | 10 | "Let me play with this state machine before I commit to it." | prototype |
 | 11 | "Set up the issue tracker / project commands for these skills." | — (no skill; configured in AGENTS.md/CLAUDE.md) |
 | 13 | "Stress-test my design — grill me on it." | grill-me |
 | 14 | "Compact this session so another agent can continue." | handoff |
-| 15 | "Write a new skill for working with Mirage." | write-a-skill |
-| 16 | "Talk like a caveman to save tokens." | caveman |
+| 15 | "Write a new skill for working with Mirage." | writing-for-agents |
 | 17 | "How should I model errors — result or exceptions?" | tdd |
 | 18 | "Add Eio-based concurrency with switches and fibers." | eio (vendored) |
 | 19 | "Design a cmdliner CLI for this tool." | cmdliner (vendored) |
@@ -49,8 +47,7 @@ trigger) — fix the description, not the case. `—` means no skill should fire
   if a generic skill wins, the specific skill's description needs sharper
   keywords. (23 routes to the vendored Alcobar `fuzz` from ocaml-claude-skills;
   the marketplace's Crowbar `fuzz` is excluded.)
-- **30/31 vs 5 (zoom-out) vs teach**: all three "explain" something. A *named
-  audience* (my manager, my mom, a 5th grader, ELI5) → `eli5`; "I don't know
-  this code, give me a map" → `zoom-out`; "teach me X over time" → `teach`
-  (stateful workspace). If `zoom-out` wins on 30, the audience keyword is not
-  carrying enough weight.
+- **30/31 vs teach**: both "explain" something. A *named audience* (my
+  manager, my mom, a 5th grader, ELI5) → `eli5`; "teach me X over time" →
+  `teach` (stateful workspace). If `teach` wins on 30, the audience keyword is
+  not carrying enough weight.

@@ -169,4 +169,4 @@ model-in-the-loop gate that lets you evaluate skill changes for routing drift.
 A good skill: fires for the right prompts and only those (layer 2); is concise,
 concrete, and internally consistent (layer 3); and is well-formed and idiomatic
 (layer 1). All three layers reference the repo's own authoring standard in
-`skills/productivity/write-a-skill/SKILL.md`.
+`skills/productivity/writing-for-agents/SKILL.md`.

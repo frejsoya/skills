@@ -1,9 +1,9 @@
-# Routing eval for the 'diagnose' skill — does the right skill fire for a prompt?
-name: diagnose-routing-eval
+# Routing eval for the 'to-spec' skill — does the right skill fire for a prompt?
+name: to-spec-routing-eval
 description: |
-  Trigger/routing accuracy for the diagnose skill: positive prompts must invoke it,
+  Trigger/routing accuracy for the to-spec skill: positive prompts must invoke it,
   confusable prompts must not. Generated from evals/trigger-cases.md.
-skill: diagnose
+skill: to-spec
 version: "1.0"
 
 config:
