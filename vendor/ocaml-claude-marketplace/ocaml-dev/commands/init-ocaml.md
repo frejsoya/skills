@@ -1,7 +1,7 @@
 ---
 description: Initialize a new OCaml project with dune, opam, CI, and standard files
 argument-hint: [project-name]
-allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
+allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Skill]
 ---
 
 # Initialize OCaml Project
@@ -46,7 +46,8 @@ Offer to save configuration to `~/.claude/ocaml-config.json` for future use.
 
 1. **lib/dune** - Library stanza
 2. **lib/<project>.ml** - Main module with license header
-3. **lib/<project>.mli** - Interface with documentation
+3. **lib/<project>.mli** - Interface with documentation, written under the
+   `doc-style` skill, which you should invoke before writing any doc comment
 
 ### Test Files
 

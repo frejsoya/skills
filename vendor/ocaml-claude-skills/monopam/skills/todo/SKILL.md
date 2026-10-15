@@ -80,7 +80,7 @@ spec before writing the test.
 Write a test that fails *today* because the item is real. The test encodes the
 spec, not the current code; a stub that passes is not a demonstration.
 
-- **Unit test** for a logic bug or missing behavior: exact expected values,
+- **Unit test** for a logic bug or missing behaviour: exact expected values,
   spec-cited by section number, vectors copied verbatim.
 - **Fuzz/property test** (see the `fuzz` skill) for an invariant that should
   hold over all inputs: roundtrip, no-crash, bounds.
@@ -102,7 +102,7 @@ Either way the item leaves TODO.md now. No zombie entries.
 
 When the only obstacle is testability: a state machine fused to IO, no
 injection point for a clock, a private function with no observable boundary:
-make a focused architectural move that exposes the behavior: split the pure core
+make a focussed architectural move that exposes the behaviour: split the pure core
 from the IO, add the missing primitive in the right library, expose a typed
 event. Browse the repo before adding anything; the primitive often already
 exists under an idiosyncratic name. The restructure is its own commit, before

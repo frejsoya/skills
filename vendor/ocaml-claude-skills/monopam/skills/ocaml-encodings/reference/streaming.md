@@ -57,8 +57,8 @@ granularities:
 | `Attribute (name, val)` | attribute leaf on current elt | `Sort.Attribute` |
 
 The same `Sort.t` that labels `Loc.Context` frames labels stream events. One
-vocabulary, top to bottom, which is why a public jsonm-style lexeme API would
-be a redundant third surface.
+vocabulary runs top to bottom, so a public jsonm-style lexeme API would be a
+redundant third surface.
 
 ## Cursor has two constructors
 

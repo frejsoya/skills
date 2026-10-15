@@ -72,7 +72,11 @@ which Base modules are particularly useful with OxCaml features.
 The `Modes` module is the cornerstone of OxCaml support in Base. It provides
 zero-cost wrappers for crossing between mode contexts.
 
-### Five Orthogonal Modalities
+### The Five Axes with `Modes` Wrappers
+
+(These are the compiler's Locality, Portability, Contention, Linearity
+and Uniqueness axes — see [SKILL-MODES.md](SKILL-MODES.md) for the full
+axis list, which is larger.)
 
 ```ocaml
 (* Locality: where values live *)
@@ -84,10 +88,10 @@ p = (nonportable, portable)
 (* Contention: thread access patterns *)
 c = (uncontended, shared, contended)
 
-(* Multiplicity: how often used *)
+(* Linearity: how often closures may be called *)
 m = (once, many)
 
-(* Aliasing: reference count *)
+(* Uniqueness: reference count *)
 a = (unique, aliased)
 ```
 
@@ -127,15 +131,17 @@ end
 
 ### Usage Pattern
 
-```ocaml
-(* Cross from local to global context *)
-let make_global (x @ local) : 'a Modes.Global.t =
-  Modes.Global.wrap x
+The wrappers don't launder modes — `Global.wrap` needs a value that is
+already global. Their point is *storage*: a `'a Modes.Global.t` keeps
+its contents global even inside a local (or unique) data structure:
 
-(* Access global value locally *)
-let use_globally (g : 'a Modes.Global.t) =
-  let x = Modes.Global.unwrap g in
-  process x
+```ocaml
+(* Keep a global value global inside a local container *)
+let local_ pair = (Modes.Global.wrap config, scratch_buffer)
+
+(* Contents can escape even though the container is local *)
+let extract ((g, _) @ local) =
+  Modes.Global.unwrap g   (* global result - fine to return *)
 ```
 
 ---

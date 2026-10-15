@@ -10,16 +10,17 @@ bootstrap.
 For users tracking the headline changes:
 
 - **Runtime metaprogramming graduated alpha → beta** (#5843). Quotes and
-  splices (`<<e>>` / `$(e)`) are now usable with `-extension-universe beta`
+  splices (`<[e]>` / `$(e)`) are now usable with `-extension-universe beta`
   instead of `alpha`. `[%eval]` is gone — it's a normal function
-  `Eval.eval : 'a expr -> 'a eval` in a new `eval` library.
+  `Eval.eval : 'a expr @ once -> 'a eval` in a new `eval` library.
 - **New mode lattices**: visibility/statefulness and contention/portability
   became **diamonds**, with `write`/`writing` (#5608) and
   `corrupted`/`corruptible` (#5713) joining the existing chains.
   `observing` has been **renamed to `reading`** (#5712).
 - **Runtime 5 is now the default** for `./configure` (#5780). The
-  per-domain "tick thread" moved into the runtime itself (#5349), with a new
-  `OCAMLRUNPARAM='T=<microsec>'` knob.
+  per-domain "tick thread" moved into the runtime itself (#5349) —
+  behavior-preserving, default interval unchanged at 50ms; a faster
+  interval is opt-in via `Domain.set_tick_interval_usec`.
 - **Block-index array syntax was deleted**. `.(0)`, `.:(0)`, `.L(i)`,
   `.l(i)`, `.S(i)`, `.s(i)`, `.n(i)` no longer parse; create indices via
   `Stdlib_stable.Idx_mut.unsafe_create_into_array` /
@@ -67,7 +68,7 @@ function in a new `otherlibs/eval` library:
 let n = [%eval: int] <[ 42 ]>
 
 (* New *)
-let n = Eval.eval <[ 42 ]>    (* val eval : 'a expr -> 'a eval *)
+let n = Eval.eval <[ 42 ]>    (* val eval : 'a expr @ once -> 'a eval *)
 ```
 
 Two new compiler flags drive linking:
@@ -131,8 +132,8 @@ shareable | corruptible     reading | writing
 Examples:
 
 ```ocaml
-(* read/write are incomparable: both are submodes of read_write, both
-   are supermodes of immutable *)
+(* read/write are incomparable: both are supermodes of read_write, both
+   are submodes of immutable *)
 let mostly_const : int ref @ write -> unit = fun r ->
   r := 0      (* allowed: write is permitted *)
   (* let _ = !r in ... — would be an error *)
@@ -149,6 +150,7 @@ The implication table in `_05-modes/syntax.md` grew accordingly:
 | `reading`    | `shareable`   |
 | `writing`    | `corruptible` |
 | `stateful`   | `nonportable` |
+| `immutable`  | `contended`   |
 | `write`      | `corrupted`   |
 | `read_write` | `uncontended` |
 
@@ -312,18 +314,17 @@ pass `--disable-runtime5` explicitly. The opam package for
 ### Tick thread moved into the runtime (#5349)
 
 The per-domain "tick thread" — which existed only in `systhreads` to
-call `thread_yield()` every 50 ms — has moved into `runtime/domain.c`
-and now runs at a much higher default frequency (250µs, matching the
-parallel scheduler's heartbeat). External-interrupt hooks are replaced
-by tick hooks, called every tick rather than only when systhreads
-decided to interrupt the GC. Lays groundwork for runtime-driven fiber
-preemption.
+call `thread_yield()` every 50 ms — has moved into `runtime/domain.c`.
+The change is **behavior-preserving**: the default interval stays 50ms.
+External-interrupt hooks are replaced by tick hooks. Lays groundwork
+for runtime-driven fiber preemption.
 
-Configurable via `OCAMLRUNPARAM`:
+A faster interval is opt-in via the new
+`Domain.set_tick_interval_usec` (per-domain `tick_interval_usec`
+starts at 0 = disabled until systhreads/preemption engages it):
 
-```sh
-OCAMLRUNPARAM='T=250' ./prog    # 250 µs tick interval (default)
-OCAMLRUNPARAM='T=50000' ./prog  # 50 ms, like pre-#5349
+```ocaml
+Domain.set_tick_interval_usec 250   (* 250 µs ticks, opt-in *)
 ```
 
 Follow-ups in the same window:
@@ -390,8 +391,6 @@ The undocumented debug flag `-dflexpect-to` was **removed**.
 
 - `OXCAML_NAME_MANGLING={flat,structured}` selects the symbol-mangling
   scheme (#5097, #5099). Default `flat`. See "Name mangling" below.
-- `OCAMLRUNPARAM` gained `T=<microseconds>` for the in-runtime tick
-  thread (#5349).
 
 ---
 
@@ -484,12 +483,12 @@ The library was renamed from `camlinternaleval` to `eval`. Update
 `./configure` with no flag now picks runtime5. If you specifically need
 runtime4, pass `--disable-runtime5` explicitly.
 
-### 7. Tick-thread defaults
+### 7. Tick-thread relocation
 
-`thread_yield()` is now driven from the runtime at a 250µs default, not
-50ms. Code that polled `Sys.time` from systhreads in tight loops may see
-slightly different scheduling. Use `OCAMLRUNPARAM='T=50000'` to restore
-the old 50ms behaviour.
+`thread_yield()` is now driven from the runtime instead of a
+systhreads-private thread. The move is behavior-preserving (50ms
+default interval unchanged), so no action is needed; a faster tick is
+opt-in via `Domain.set_tick_interval_usec`.
 
 ### 8. Regalloc defaults flipped
 
@@ -505,8 +504,9 @@ Downstream projects may wish to bump for diff-friendly merges.
 
 ### 10. `-dflexpect-to` removed
 
-The combined `-drawfexpr` + `-dfexpr` dump flag is gone. Use
-`-dfexpr-annot` or `-drawfexpr` separately.
+This undocumented internal debug flag (it redirected flexpect dump
+output to a file) is gone. Use `-dfexpr-annot` or `-drawfexpr` for
+fexpr dumps.
 
 ### 11. `immediate` / `immediate64` vocabulary
 

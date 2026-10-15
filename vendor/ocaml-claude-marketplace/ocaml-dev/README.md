@@ -29,6 +29,8 @@ Comprehensive OCaml development toolkit for Claude Code.
 | Skill | Description |
 |-------|-------------|
 | ocaml-code-style | Refactoring patterns, naming conventions, module hygiene |
+| doc-style | Comment and ocamldoc style in the voice of a POSIX manpage |
+| review-ocaml | Two-phase project review: interfaces first, then per-module subagents |
 | ocaml-testing | Testing with Alcotest, Eio mocks, cram tests |
 | fuzz | Fuzz testing with Crowbar for parsers and encoders |
 
@@ -37,6 +39,7 @@ Comprehensive OCaml development toolkit for Claude Code.
 | Skill | Description |
 |-------|-------------|
 | ocaml-docs | Fixing odoc warnings, reference syntax, cross-package refs |
+| doc-style | What the prose should say: manpage voice, `[f x y] is ...`, no filler |
 | ocaml-tutorials | Creating .mld tutorials with MDX executable examples |
 | ocaml-rfc-integration | Working with IETF RFCs, OCamldoc citations |
 
@@ -146,6 +149,18 @@ Creates npm branch workflow for js_of_ocaml/wasm_of_ocaml output.
 ```
 
 Analyzes and suggests idiomatic OCaml improvements.
+
+### Review a Project
+
+```
+Review this OCaml project.
+```
+
+Invokes `review-ocaml`. Phase one reads only the `dune` and `.mli` files and
+reports on the public interfaces, with a restructuring and redocumentation
+plan. After you approve it, phase two dispatches a subagent per module to
+review the implementation for logic errors, dead code, redundancy and
+optimisation opportunities.
 
 ## Template Files
 

@@ -22,7 +22,7 @@ OCaml's type safety.
 | `float32` | `float32#` | `float32` | 32-bit | `#1.0s` |
 | `int8` | `int8#` | `bits8` | 8-bit | `#42s` |
 | `int16` | `int16#` | `bits16` | 16-bit | `#42S` |
-| `int` | `int#` | - | native | `#42` (untagged) |
+| `int` | `int#` | `untagged_immediate` | native | `#42m` (untagged) |
 | - | `char#` | `bits8` | 8-bit | `#'a'` |
 | `bool` | `bool#` | `bits8` | 8-bit | `#true` / `#false` |
 | `unit` | `unit#` | `void` | 0 | `#()` |
@@ -49,7 +49,7 @@ let b : int32# = Int32_u.of_int32 42l
 
 ### Unboxed Booleans (5.2.0minus-31+)
 
-`bool#` has kind `bits8 mod external_`. It's a true primitive — no
+`bool#` has kind `bits8 mod everything`. It's a true primitive — no
 allocation, no boxing, and constructors `#true` / `#false` work in both
 expressions and patterns:
 
@@ -135,20 +135,60 @@ let process : #(float# * float#) -> float# = fun #(a, b) ->
 
 ## Mixed Blocks
 
-Records can mix boxed and unboxed fields. As of 5.2.0minus-31, block
-indices into mixed products use a **52-bit offset and 12-bit gap**, and
-the layout version bumped from v4 to v5:
+Records can mix boxed and unboxed fields. The C-visible layout version
+is **v6** as of 5.2.0minus-39 (v5 in minus-31..38, v4 before that):
 
 ```ocaml
-(* Old (pre-5.2.0minus-31) *)
-let _ = Stdlib_upstream_compatible.mixed_block_layout_v4
-
-(* New *)
-let _ = Stdlib_upstream_compatible.mixed_block_layout_v5
+let _ = Stdlib_upstream_compatible.mixed_block_layout_v6
 ```
 
-C code that asserts on mixed-block layout needs the matching rename:
-`Assert_mixed_block_layout_v4` → `Assert_mixed_block_layout_v5`.
+C code that asserts on mixed-block layout needs the matching macro:
+`Assert_mixed_block_layout_v6`. v6 = all-value/void records are
+uniform blocks, and all-`float64` records are mixed blocks by default.
+
+### Records Mixing `float` and `float#` (changed in 5.2.0minus-39)
+
+On the released 5.2.0minus-39, a record mixing boxed `float` and
+unboxed `float#` **requires `[@@flatten_floats]`** — declaring one
+without it is a hard error, and with it the boxed `float` fields are
+stored flat inline (as pre-39 did automatically). Such records get no
+unboxed (`t#`) version:
+
+```ocaml
+type t = { f : float; u : float# }
+(* Error at minus-39: missing [@@flatten_floats] *)
+
+type t_flat = { f : float; u : float# } [@@flatten_floats]
+(* f stored flat inline; no t_flat# *)
+```
+
+UNRELEASED (minus-40+): the attribute becomes optional — unannotated
+mixed records store the boxed `float` as a pointer and *do* get an
+unboxed version.
+
+All-`float64` records (`{ x : float#; y : float# }`) are mixed blocks
+by default; `[@@represent_as_float_array]` restores the old
+float-array representation (errors unless every field is `float64`).
+Both attributes are part of the representation for module inclusion.
+
+### `[@atomic]` Field Restrictions (UNRELEASED, 5.2.0minus-40+)
+
+Atomic record fields must have layout `value`, are not permitted in
+mixed blocks, and records with `[@atomic]` fields get no unboxed
+version.
+
+### All-Void Constructors (UNRELEASED, 5.4.0-ox2+)
+
+A variant constructor whose arguments are all void must be annotated:
+
+```ocaml
+type t =
+  | A of unit# [@immediate_all_void_constructor]
+  | C
+```
+
+Without the attribute it is an error (preparation for a representation
+change from tagged immediate to empty block).
 
 
 ```ocaml
@@ -187,13 +227,16 @@ let electron = {
 
 ## The `or_null` Type
 
-A non-allocating option for nullable unboxed values:
+A non-allocating option for **value** types. The argument must be a
+non-null *value* type — despite living in the unboxed-types extension,
+`float# or_null` and other unboxed arguments are **rejected**
+(`type ('a : value) or_null`):
 
 ```ocaml
 type 'a or_null = Null | This of 'a
 
-(* Use with unboxed types - no allocation! *)
-let find_float (arr : float# array) idx : float# or_null =
+(* No allocation: Null is encoded without a box *)
+let find (arr : string array) idx : string or_null =
   if idx >= 0 && idx < Array.length arr then
     This arr.(idx)
   else
@@ -209,12 +252,30 @@ let get_or_default result default =
 ### or_null vs option
 
 ```ocaml
-(* option allocates Some constructor *)
-let f () : float# option = Some #3.14  (* Allocates! *)
+(* option allocates the Some constructor *)
+let f x : string option = Some x    (* Allocates! *)
 
 (* or_null doesn't allocate *)
-let g () : float# or_null = This #3.14  (* No allocation *)
+let g x : string or_null = This x   (* No allocation *)
 ```
+
+### Custom `[@@or_null]` Types (5.2.0minus-38+, generalized in 5.4.0-ox2)
+
+Any two-constructor variant (one nullary, one unary) can opt into the
+same non-allocating null encoding:
+
+```ocaml
+type 'a maybe = Nope | Yep of 'a [@@or_null]
+
+(* Since 5.4.0-ox2, the payload shape is unconstrained: *)
+type no_param = A | B of int [@@or_null]
+type ('a, 'b) multi = Nope | Yep of ('a list * 'b) [@@or_null]
+type fn = No_fn | Fn of (unit -> unit) @@ portable [@@or_null]
+```
+
+Still rejected: more than two constructors, multi-argument payloads
+(`B of int * int`), and GADT constructors. Re-export with
+`[@@or_null_reexport]` (mutually exclusive with `[@@or_null]`).
 
 ---
 
@@ -236,7 +297,7 @@ let ints64 : int64# array = [| #1L; #2L; #3L |]
 (* Untagged small int arrays (NEW in 5.2.0minus-25) *)
 let bytes : int8# array = [| #0s; #1s; #255s |]
 let shorts : int16# array = [| #0S; #1S; #32767S |]
-let ints : int# array = [| #0; #1; #42 |]
+let ints : int# array = [| #0m; #1m; #42m |]   (* int# literal suffix is m *)
 let chars : char# array = [| #'a'; #'b'; #'c' |]
 ```
 
@@ -244,10 +305,10 @@ let chars : char# array = [| #'a'; #'b'; #'c' |]
 
 | Array Type | Bytes per Element | Notes |
 |------------|-------------------|-------|
-| `float# array` | 8 | Custom block, packed |
-| `float32# array` | 4 | Custom block, packed |
-| `int64# array` | 8 | Custom block, packed |
-| `int32# array` | 4 | Custom block, packed |
+| `float# array` | 8 | Dedicated array tag, packed |
+| `float32# array` | 4 | Dedicated array tag, packed |
+| `int64# array` | 8 | Dedicated array tag, packed |
+| `int32# array` | 4 | Dedicated array tag, packed |
 | `int# array` | native word | Untagged, packed |
 | `int16# array` | 2 | Untagged, packed |
 | `int8# array` | 1 | Untagged, packed |
@@ -350,17 +411,21 @@ let minmax (arr : float# array) : #(float# * float#) =
 
 ### Nullable Lookup
 
+`or_null` only accepts value types, so a nullable *unboxed* result
+needs a validity flag or sentinel instead:
+
 ```ocaml
 type cache = {
   data : float# array;
   valid : bool array;
 }
 
-let lookup (c : cache) idx : float# or_null =
+(* Returns #(found, value); value only meaningful when found *)
+let lookup (c : cache) idx : #(bool * float#) =
   if idx >= 0 && idx < Array.length c.data && c.valid.(idx) then
-    This c.data.(idx)
+    #(true, c.data.(idx))
   else
-    Null
+    #(false, #0.0)
 ```
 
 ### Mixed Block with Methods
@@ -454,14 +519,18 @@ let id (type a : float64) (x : a) = x
 let _ = id #3.14  (* OK *)
 ```
 
-### Cannot Store Unboxed in Regular Option
+### Cannot Store Unboxed in Option — or in or_null
 
 ```ocaml
 (* ERROR: option expects value kind *)
 let bad : float# option = Some #3.14
 
-(* FIX: Use or_null *)
-let good : float# or_null = This #3.14
+(* ALSO AN ERROR: or_null expects value kind too *)
+let bad2 : float# or_null = This #3.14
+
+(* FIX: box at the boundary, or use an unboxed tuple with a flag *)
+let good : float option = Some (Float_u.to_float #3.14)
+let good2 : #(bool * float#) = #(true, #3.14)
 ```
 
 ### Unboxed Records Are Copied
@@ -481,7 +550,8 @@ let modify (p : point) : point =
 1. **Use unboxed types in hot loops** - eliminates allocation
 2. **Prefer `let mutable` over `ref` for unboxed accumulators**
 3. **Use unboxed arrays for numeric data**
-4. **Use `or_null` instead of `option` for nullable unboxed**
+4. **Use `or_null` instead of `option` for nullable value types**
+   (unboxed types are not accepted by either)
 5. **Use `[@unboxed]` on external declarations**
 
 See also: [SKILL-KINDS.md](SKILL-KINDS.md) for the kind system,

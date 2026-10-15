@@ -32,6 +32,11 @@ parallel numeric operations on x86-64 (SSE/AVX).
 | `float32x8` | `float32x8#` | 8 | 32-bit float |
 | `float64x4` | `float64x4#` | 4 | 64-bit float |
 
+There are also `float16x8` / `float16x16` half-float vectors, and a
+full **512-bit** family (`int8x64` … `float64x8`, kind `vec512`) —
+these are gated behind the *alpha* SIMD extension maturity, unlike the
+128/256-bit types above (stable).
+
 ---
 
 ## Boxed vs Unboxed Vectors
@@ -142,16 +147,29 @@ let maxs = Float32x4.max a b      (* Element-wise max *)
 
 ### From Arrays
 
-```ocaml
-let arr = [| 1.0; 2.0; 3.0; 4.0; 5.0; 6.0; 7.0; 8.0 |]
+Prefer `floatarray` or `float# array` — SIMD access to plain
+`float array` still works on released compilers but is removed in the
+unreleased 5.4.0-ox2 (see note below):
 
-(* Load 4 floats starting at index 0 *)
-let v1 = Float32x4.Float_array.get arr ~idx:0
-let v2 = Float32x4.Float_array.get arr ~idx:4
+```ocaml
+let arr : float# array = [| #1.0; #2.0; #3.0; #4.0; #5.0; #6.0; #7.0; #8.0 |]
+
+(* Load 2 unboxed floats starting at index 0 *)
+let v1 = Float64x2.Float_u_array.get arr ~idx:0
+let v2 = Float64x2.Float_u_array.get arr ~idx:2
 
 (* Store back *)
-Float32x4.Float_array.set arr ~idx:0 result
+Float64x2.Float_u_array.set arr ~idx:0 result
 ```
+
+**Removed in the UNRELEASED 5.4.0-ox2** (#6128): the compiler
+primitives for SIMD access to `float array` and `float iarray`
+(`%caml_float_array_get128/set128` and the 256/512-bit and
+`_indexed_by_*` variants) are gone — they cannot work under
+`--disable-flat-float-array`. The `floatarray`
+(`%caml_floatarray_*`) and `float# array`
+(`%caml_unboxed_float_array_*`) equivalents remain; migrate `float
+array` SIMD externals to one of those.
 
 ### From Strings/Bytes
 
@@ -267,6 +285,11 @@ let i = Int32x8.set 8l 7l 6l 5l 4l 3l 2l 1l
 
 ## SIMD Load/Store Intrinsics (NEW in 5.2.0minus-25)
 
+> The `external` signatures in this and the following sections are
+> **illustrative** — the real compiler builtins are `caml_`-prefixed
+> (e.g. `caml_bmi_andn_int64`, `caml_avx2_vec128_gather32_index32`);
+> in practice you call them through the `ocaml_simd_*` libraries.
+
 Direct memory operations with proper alignment handling:
 
 ```ocaml
@@ -290,24 +313,15 @@ external vec128_load_low32 : bytes -> int -> int32x4#  (* Load 32 bits to low la
 
 ## AVX2 Gather Intrinsics (NEW in 5.2.0minus-25)
 
-Gather operations load multiple values from non-contiguous memory addresses:
+Gather operations load multiple values from non-contiguous memory
+addresses. They are named by lane width × index width — there are no
+float-typed gathers (reinterpret lanes as needed):
 
 ```ocaml
-(* Gather 32-bit integers using int32 indices *)
-(* Base address + indices * scale, masked by mask *)
-external gather_int32x4 :
-  base:nativeint -> indices:int32x4# -> scale:int -> mask:int32x4# -> int32x4#
-
-(* Gather 64-bit integers *)
-external gather_int64x2 :
-  base:nativeint -> indices:int64x2# -> scale:int -> mask:int64x2# -> int64x2#
-
-(* Gather floats *)
-external gather_float32x4 :
-  base:nativeint -> indices:int32x4# -> scale:int -> mask:float32x4# -> float32x4#
-
-external gather_float64x2 :
-  base:nativeint -> indices:int64x2# -> scale:int -> mask:float64x2# -> float64x2#
+(* vec{128,256}_gather{32,64}_index{32,64};
+   C builtins caml_avx2_vec128_gather32_index32 etc. *)
+vec128_gather32_index32 ~scale ~onto addr ~idx ~mask
+(* scale:int64#  onto:int32x4  addr  idx:int32x4  mask:int32x4 *)
 
 (* Scale must be 1, 2, 4, or 8 *)
 ```
@@ -457,21 +471,24 @@ let dot4 (a : float32x4#) (b : float32x4#) : float =
 
 ### Process Array in Chunks
 
-```ocaml
-let process_array (arr : float array) : unit =
-  let len = Array.length arr in
-  let vec_len = len / 4 * 4 in
+SIMD primitives on plain `float array` are removed in the unreleased
+5.4.0-ox2, so prefer `float# array` (or `floatarray`):
 
-  (* Process 4 elements at a time *)
-  for i = 0 to vec_len / 4 - 1 do
-    let v = Float32x4.Float_array.get arr ~idx:(i * 4) in
-    let result = Float32x4.sqrt v in
-    Float32x4.Float_array.set arr ~idx:(i * 4) result
+```ocaml
+let process_array (arr : float# array) : unit =
+  let len = Array.length arr in
+  let vec_len = len / 2 * 2 in
+
+  (* Process 2 doubles at a time *)
+  for i = 0 to vec_len / 2 - 1 do
+    let v = Float64x2.Float_u_array.get arr ~idx:(i * 2) in
+    let result = Float64x2.sqrt v in
+    Float64x2.Float_u_array.set arr ~idx:(i * 2) result
   done;
 
   (* Handle remainder *)
   for i = vec_len to len - 1 do
-    arr.(i) <- Float.sqrt arr.(i)
+    Array.set arr i (Float_u.sqrt (Array.get arr i))
   done
 ```
 
@@ -512,10 +529,12 @@ helpers include `caml_popcnt_int16`, `caml_lzcnt_int16`, and
 ## Arm64: Wide Vectors Lowered as Tuples (5.2.0minus-31+)
 
 On arm64, vectors wider than the platform's native register width are
-lowered to tuples during codegen (#5291). A new `Pvec_reinterpret`
-primitive bridges boxed/unboxed conversion. Practical impact: code that
-uses 256-bit vectors on arm64 will compile, but at a representation
-cost — prefer native-width operations where performance matters.
+lowered to tuples during codegen (#5291), bridged by the
+`Preinterpret_boxed_vector_as_tuple` /
+`Preinterpret_tuple_as_boxed_vector` primitives. Practical impact:
+code that uses 256-bit vectors on arm64 will compile, but at a
+representation cost — prefer native-width operations where
+performance matters.
 
 ---
 
@@ -552,18 +571,13 @@ per-element allocation the previous layout forced.
 
 ---
 
-## Checking CPU Features
+## CPU Feature Availability
 
-```ocaml
-(* Runtime check for AVX support *)
-external has_avx : unit -> bool = "caml_has_avx" [@@noalloc]
-
-let use_best_implementation () =
-  if has_avx () then
-    process_avx data
-  else
-    process_sse data
-```
+AVX/AVX2 availability is a **compile-time** property of the compiler
+build (`Config.has_avx` / `Config.has_avx2`), not a runtime check —
+there is no `caml_has_avx` runtime primitive. Binaries built with AVX
+enabled assume the target CPU supports it; select SSE-vs-AVX
+implementations when building, not at runtime.
 
 See also: [SKILL-UNBOXED.md](SKILL-UNBOXED.md) for unboxed types,
 [SKILL-ZERO-ALLOC.md](SKILL-ZERO-ALLOC.md) for allocation-free SIMD code.

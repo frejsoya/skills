@@ -1,7 +1,7 @@
 ---
 description: Fetch an IETF RFC and integrate it into the project with OCamldoc citations
 argument-hint: <rfc-number>
-allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, WebFetch]
+allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, WebFetch, Skill]
 ---
 
 # Add RFC
@@ -71,7 +71,7 @@ Search the codebase for:
 Provide:
 1. Confirmation of RFC download
 2. Summary of RFC contents (title, sections)
-3. OCamldoc citation templates
+3. OCamldoc citation templates, worded under the `doc-style` skill
 4. Suggestions for where to add citations in existing code
 
 ## Example Usage

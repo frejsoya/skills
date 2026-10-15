@@ -140,6 +140,37 @@ type visibility = Visible | Hidden
 let create_widget ~visibility ~border = ...
 ```
 
+## Comments and Documentation
+
+Documentation is written in the voice of a POSIX manual page. Implementations
+carry no comments where the code speaks for itself. Load the `doc-style` skill
+before writing or rewording any comment. It is the full standard and the list
+below is only its summary.
+
+The short form:
+
+- A function's doc opens `[f x y] is ...`, on the line after the `val`.
+- Full sentences ending in a full stop. No fragments.
+- No colons or em dashes joining clauses. Use separate sentences.
+- Nothing about the implementation. Only what the caller can observe.
+- No `This function`, `Note that`, `simply`, `helper for`, `internally`.
+- Every optional argument states its default.
+- Delete implementation comments that restate the code, section banners, and
+  commented-out code.
+- Documentation lives in the `.mli`. An `.ml` with an `.mli` carries no
+  `(** ... *)` comments.
+
+```ocaml
+(* Bad *)
+(** Parses the string: splits on commas and builds the record — fast. *)
+val parse : string -> t
+
+(* Good *)
+val parse : string -> t
+(** [parse s] is the record encoded in [s]. Parsing is linear in the length of
+    [s]. *)
+```
+
 ## Red Flags
 
 - Match that just rewraps: `Some v -> Some (f v) | None -> None`
@@ -148,3 +179,7 @@ let create_widget ~visibility ~border = ...
 - Missing `pp` function on types
 - Unlabeled boolean parameters
 - `Obj.magic` anywhere
+- Doc comments that describe the implementation rather than the behaviour
+- Comments inside an implementation that restate the code
+- A colon or em dash joining clauses in a doc comment
+- An exported value with no doc comment

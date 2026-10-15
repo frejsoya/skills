@@ -17,19 +17,21 @@ their defining scope.
   functions, and live indefinitely
 - **Local** values live on the stack and must not escape their defining scope
 
-### The Stack Region Model
+### The Region Model
 
-Each function call has a stack region. Local values are allocated in that region
-and deallocated when the function returns.
+Local allocations do **not** go on the OS call stack: they live on a
+separate, dynamically-grown local stack laid out like the minor heap.
+Each function call opens a *region* on it; local values are allocated
+in the current region and freed when it ends.
 
 ```
 ┌─────────────────────────┐
-│ Caller's stack frame    │
+│ Caller's region         │
 │ ┌─────────────────────┐ │
 │ │ exclave_ allocations│ │  ← Allocated here with exclave_
 │ └─────────────────────┘ │
 ├─────────────────────────┤
-│ Callee's stack frame    │
+│ Callee's region         │
 │ ┌─────────────────────┐ │
 │ │ local_ allocations  │ │  ← Allocated here with local_/stack_
 │ └─────────────────────┘ │
@@ -43,7 +45,8 @@ and deallocated when the function returns.
 ### Creating Local Values
 
 ```ocaml
-(* Implicit: allocate on stack *)
+(* Mode the binding local (inference may stack-allocate;
+   only stack_ forces it) *)
 let local_ x = (1, 2, 3)
 
 (* Explicit: force stack allocation *)
@@ -116,10 +119,12 @@ let bad x =
   let y = exclave_ stack_ (x, x) in  (* Not tail! *)
   fst y
 
-(* ERROR: local value escaping *)
-let bad2 x = exclave_
+(* OK (not an error): exclave_ ends the current region immediately,
+   so everything after it — including this stack_ allocation — happens
+   in the CALLER's region and may be returned *)
+let fine x = exclave_
   let local_ temp = stack_ (x, x) in
-  temp  (* temp is from inner scope, not caller's *)
+  temp
 ```
 
 ---
@@ -137,17 +142,22 @@ let sum_array arr =
   !total  (* Return the int, not the ref *)
 ```
 
+**Refs (and mutable fields, and arrays) may themselves be local, but
+their *contents* must be `global`** — `acc := stack_ (...)` is a mode
+error. To accumulate local data, use `let mutable`, which can hold
+local values:
+
 ### Building Local Lists
 
 ```ocaml
 let collect_positives arr =
-  let local_ acc = ref [] in
+  let mutable acc = [] in
   for i = 0 to Array.length arr - 1 do
     if arr.(i) > 0 then
-      acc := stack_ (arr.(i) :: !acc)
+      acc <- stack_ (arr.(i) :: acc)
   done;
   (* Process locally, return global result *)
-  List.fold_left (+) 0 !acc
+  List.fold_left (+) 0 acc
 ```
 
 ---
@@ -208,13 +218,14 @@ let distance (p1 @ local) (p2 @ local) =
 let find_max arr =
   if Array.length arr = 0 then None
   else begin
-    let local_ best = ref (0, arr.(0)) in
+    (* let mutable can hold local values; a ref could not *)
+    let mutable best = stack_ (0, arr.(0)) in
     for i = 1 to Array.length arr - 1 do
-      if arr.(i) > snd !best then
-        best := stack_ (i, arr.(i))
+      if arr.(i) > snd best then
+        best <- stack_ (i, arr.(i))
     done;
     (* Return global result *)
-    Some (fst !best)
+    Some (fst best)
   end
 ```
 
@@ -308,20 +319,22 @@ let good () =
   x
 ```
 
-### Pitfall: Wrong Stack Frame
+### Pitfall: Storing Local Values in Refs or Mutable Fields
 
 ```ocaml
-(* SUBTLE BUG: stack_ inside exclave_ allocates wrong frame *)
-let confusing x = exclave_
-  let local_ temp = stack_ (x, x) in  (* temp in callee frame! *)
-  temp  (* Returns pointer to deallocated memory! *)
+(* ERROR: ref contents must be global, even if the ref is local *)
+let bad () =
+  let local_ acc = ref [] in
+  acc := stack_ (1 :: !acc)   (* "local but expected to be global" *)
 ```
 
-**Solution**: Use stack_ directly with exclave_:
+**Solution**: Use `let mutable`, which may hold local values:
 
 ```ocaml
-let correct x = exclave_
-  stack_ (x, x)  (* Allocated in caller's frame *)
+let good () =
+  let mutable acc = [] in
+  acc <- stack_ (1 :: acc);
+  List.length acc
 ```
 
 ---
@@ -342,13 +355,16 @@ let correct x = exclave_
 - Very large allocations (limited stack space)
 - Values shared across threads
 
-### Stack Size Limits
+### Local Stack Growth
 
-Stack space is limited (typically 8MB on Linux). Avoid:
+Local allocations live on a separate local stack that grows dynamically
+(not the ~8MB OS thread stack), so large local allocations won't crash —
+but they hold memory for the whole region and forgo the minor heap's
+locality benefits. Prefer the heap for very large or long-lived data:
 
 ```ocaml
-(* BAD: Very large stack allocation *)
-let bad () =
+(* Dubious: a huge region-lifetime allocation *)
+let dubious () =
   let local_ huge = Array.make 1_000_000 0 in
   ...
 ```
@@ -364,7 +380,7 @@ let bad () =
 type local_point = { x : float#; y : float# }
 
 let make_point x y = exclave_
-  stack_ { x = #x; y = #y }
+  stack_ { x = Float_u.of_float x; y = Float_u.of_float y }
 ```
 
 ### With Zero-Alloc
@@ -378,11 +394,9 @@ let[@zero_alloc] process x y =
 
 ### With Comprehensions
 
-```ocaml
-(* List comprehensions can be local *)
-let local_squares n = exclave_
-  [ x * x for x = 1 to n ]  (* Local list *)
-```
+List comprehensions build their *intermediate* structures on the local
+stack for efficiency, but the resulting list is always **global**
+(heap-allocated) — you cannot get a local list out of a comprehension.
 
 See also: [SKILL-MODES.md](SKILL-MODES.md) for the full mode system,
 [SKILL-UNBOXED.md](SKILL-UNBOXED.md) for unboxed types.

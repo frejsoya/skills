@@ -1,7 +1,7 @@
 ---
 description: Convert an ocamlbuild/topkg project to dune build system
 argument-hint:
-allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
+allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Skill]
 ---
 
 # Port to Dune

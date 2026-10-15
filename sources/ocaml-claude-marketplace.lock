@@ -1,8 +1,14 @@
 upstream: https://github.com/avsm/ocaml-claude-marketplace.git
 subdir:   plugins/ocaml-dev
 policy:   vendored verbatim (pinned; never hand-edited)
-location: vendor/ocaml-claude-marketplace/
+location: vendor/ocaml-claude-marketplace/ocaml-dev/
 update:   make vendor-update
-commit:   ceb85f9331fce9cd56203f0dba1917c84529e52e
-date:     2026-05-24 11:26:38 +0100
-subject:  update-for-minus38
+commit:   9a580e6e3d660ed2f9cd55ceaa64f6d1e90d4f01
+date:     2026-09-02 11:17:10 +0100
+subject:  improvements to doc and review skills
+exclude:  skills/fuzz
+exclude:  skills/project-setup
+exclude:  skills/progress
+exclude:  skills/logs
+exclude:  skills/memtrace
+exclude:  skills/tutorials

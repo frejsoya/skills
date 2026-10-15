@@ -28,7 +28,7 @@ reasons:
   edited locally without a trace; the oracle is no longer pinned.
 
 If the public API "doesn't expose" what you want to test, that test is probing
-internals rather than interop behavior. **Drop the test, don't inline it**:
+internals rather than interop behaviour. **Drop the test, don't inline it**:
 move it to a unit test in the package that owns the algorithm, and let the
 operations-level traces cover the same ground end-to-end.
 
@@ -40,9 +40,8 @@ with `==X.Y.Z`; a Docker image pinned by content-addressed digest. Anyone with
 the toolchain on PATH gets identical bytes.
 
 **4. One trigger: `REGEN=1 dune build @traces`.** No `make regen`, no
-`./regenerate.sh` outside dune. The `REGEN=1` gate is load-bearing, not
-convenience: it is what keeps the traces *pure source* during a normal
-`dune test`.
+`./regenerate.sh` outside dune. The `REGEN=1` gate keeps the traces *pure
+source* during a normal `dune test`.
 
 **5. Standard trace formats.** Never invent a custom binary trace format.
 
@@ -227,7 +226,7 @@ KVN and XML, `nox-json` for JSON, `yamlt` for YAML.
 
 ## `test.ml`
 
-Define a record type and a `Csv.Row` codec per trace file, then `Csv.decode_file`.
+Define a record type and a `Csv.Row` codec per trace file, then `Csv.of_file`.
 
 ```ocaml
 (** <Tool> interop tests for <lib>.
@@ -247,15 +246,15 @@ let frame_codec =
   Csv.(Row.(
     obj (fun name input_hex expected_hex ->
         { name; input_hex; expected_hex })
-    |> col "name" string ~enc:(fun r -> r.name)
-    |> col "input_hex" string ~enc:(fun r -> r.input_hex)
-    |> col "expected_hex" string ~enc:(fun r -> r.expected_hex)
+    |> col "name" Field.string ~enc:(fun r -> r.name)
+    |> col "input_hex" Field.string ~enc:(fun r -> r.input_hex)
+    |> col "expected_hex" Field.string ~enc:(fun r -> r.expected_hex)
     |> finish))
 
 let test_frames () =
-  let rows = match Csv.decode_file frame_codec (trace "frames.csv") with
+  let rows = match Csv.of_file frame_codec (trace "frames.csv") with
     | Ok rows -> rows
-    | Error msg -> Alcotest.failf "CSV: %s" msg
+    | Error e -> Alcotest.failf "CSV: %a" Csv.Error.pp e
   in
   List.iter (fun (r : frame_row) ->
     (* compare our impl against r.expected_hex *)

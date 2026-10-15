@@ -22,36 +22,62 @@ description: "OCaml development guidance for building robust, type-safe applicat
   - Structured output: `fmt`
   - Logging: `logs`
   - CLI parsing: `cmdliner`
-  - JSON: `yojson`
+  - JSON: `jsont`
   - HTTP: `cohttp-eio`
 
 ## Module Interface Design
 
 ### Documentation Pattern
 
-Every `.mli` file starts with a top-level doc comment:
+Write ocamldoc in the voice of a POSIX manual page. Full sentences, no
+extraneous detail, no colons or em dashes joining clauses, and nothing about
+the implementation. Load the `doc-style` skill before writing or changing any
+comment. It is the full standard and this section is only its summary.
+
+Every `.mli` file starts with a synopsis, then a blank line, then the
+description.
 
 ```ocaml
-(** User API
+(** User accounts and profiles.
 
-    This module provides types and functions for interacting with users. *)
+    Users are workspace members. A user is identified by an {!type:id} that is
+    stable for the lifetime of the account. *)
 ```
 
 ### Function Documentation
 
-Use `[function_name arg1 arg2] is ...` pattern:
+Open with the function applied to its arguments, followed by `is`:
 
 ```ocaml
 val is_bot : t -> bool
 (** [is_bot u] is [true] if [u] is a bot user. *)
+
+val find : id -> t -> user option
+(** [find id t] is the user of [t] with identifier [id], or [None] if [t] has
+    no such user. *)
 ```
 
-For values, describe what they represent:
+Reserve an active verb for functions that exist for their effect:
+
+```ocaml
+val flush : out_channel -> unit
+(** [flush oc] writes the buffered bytes of [oc] to its underlying file. *)
+```
+
+For types, describe what the values represent, never their representation:
 
 ```ocaml
 type id = string
-(** A user identifier. *)
+(** The type for user identifiers. An identifier is unique within a workspace
+    and stable across renames. *)
 ```
+
+### Implementation Comments
+
+Implementations carry no comments where the code says it already. Write one
+only for a spec citation, a non-local invariant, a deliberate workaround, or a
+justification for an unsafe operation. Documentation lives in the `.mli`, so
+an `.ml` with an `.mli` has no `(** ... *)` comments at all.
 
 ### Standard Interface for Data Types
 

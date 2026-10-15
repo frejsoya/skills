@@ -11,14 +11,31 @@ and **never hand-edited** — change them upstream and re-sync.
 ## ocaml-claude-marketplace / ocaml-dev
 
 Anil Madhavapeddy's OCaml development plugin — the OCaml *domain* skills (eio,
-effects, result, cmdliner, jsont, fuzz, memtrace, testing, code-style,
-project-setup, oxcaml, ...). These complement our engineering *workflow* skills:
+effects, result, cmdliner, jsont, testing, code-style,
+oxcaml, ...). These complement our engineering *workflow* skills:
 ours cover discipline (tdd, diagnose, triage, architecture); these cover OCaml
 expertise.
 
 - **Upstream**: https://github.com/avsm/ocaml-claude-marketplace (`plugins/ocaml-dev`)
 - **License**: ISC (see upstream `LICENSE`)
 - **Pinned commit**: recorded in [`sources/ocaml-claude-marketplace.lock`](../sources/ocaml-claude-marketplace.lock)
+
+## eli5
+
+DreambigOu's ELI5 — a single skill that explains a topic, a piece of code, or an
+error to a *named audience*: an age, a grade level, a job role (manager,
+designer, director), or a family member. It picks the vocabulary, the analogy
+domain, and the length to match, and refuses to talk down. Neither OCaml nor
+workflow: the one skill here aimed at the reader of an explanation rather than
+at the work.
+
+Vendored whole (the repo root), because its `LICENSE` and its `skills/eli5/`
+have no common subdir. Upstream's `eli5-workspace/` eval harness is excluded —
+see [`sources/README.md`](../sources/README.md).
+
+- **Upstream**: https://github.com/DreambigOu/ELI5 (repo root)
+- **License**: MIT (see upstream `LICENSE`)
+- **Pinned commit**: recorded in [`sources/eli5.lock`](../sources/eli5.lock)
 
 ### Updating
 

@@ -44,7 +44,7 @@ MYAPP_LOG=debug myapp              # same syntax via the environment
 
 myapp --json                       # structured JSON lines
 myapp --json --log-tag=env=prod    # add custom tags
-myapp --trace protocol.log         # protocol trace to a file
+myapp --log-trace protocol.log     # protocol trace to a file
 ```
 
 ## Levels
@@ -134,7 +134,7 @@ When `setup` is too coarse, the terms compose directly:
 | `Observe.log name` | `string option Term.t` | `--log`, with `$NAME_LOG` |
 | `Observe.json` | `bool Term.t` | `--json` |
 | `Observe.log_tags` | `(string * string) list Term.t` | `--log-tag KEY=VALUE` |
-| `Observe.trace_file` | `string option Term.t` | `--trace FILE` |
+| `Observe.log_trace` | `string option Term.t` | `--log-trace FILE` |
 
 ```ocaml
 let my_setup =
@@ -147,7 +147,7 @@ let my_setup =
   $ Observe.log "myapp"
   $ Observe.json
   $ Observe.log_tags
-  $ Observe.trace_file
+  $ Observe.log_trace
 ```
 
 The pieces behind `setup` are also public:

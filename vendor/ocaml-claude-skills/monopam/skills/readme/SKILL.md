@@ -30,6 +30,12 @@ Omit what doesn't apply. Don't pad.
   README into MDX so `dune runtest` checks it on every build.
 - **No dead links.** Placeholder URLs (`link-to-docs`,
   `github.com/your-repo`) and template artifacts (`%%VERSION%%`) destroy trust.
+- **Describe the package, not the tree it is developed in.** A package is
+  published and read on its own, so its README never names the monorepo it
+  lives in, a path relative to that monorepo's root, or the search that came
+  before it. Commands run from the package's own checkout, a sibling is named
+  by its published package or its URL, and the record of what was checked
+  goes in the commit message.
 - **The license identifier must match** the `LICENSE` file and the package
   manifest (`dune-project`, `Cargo.toml`, `package.json`, `pyproject.toml`).
 
@@ -158,3 +164,5 @@ everything for deep context.
    the upstream project)?
 7. If the project implements a standard, are the RFC/spec references correct and
    linked?
+8. Does any sentence, path or command assume the reader stands in the monorepo
+   the package is developed in?

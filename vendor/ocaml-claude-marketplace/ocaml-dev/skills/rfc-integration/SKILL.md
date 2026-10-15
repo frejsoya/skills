@@ -57,12 +57,17 @@ Create `spec/` directory if it doesn't exist.
 
 ## Documentation Patterns
 
+Citations are the one case where a doc comment carries a reference rather than
+behaviour. Everything else follows the `doc-style` skill, which you should load
+before writing the prose around a citation.
+
 ### Module-Level Documentation
 
 ```ocaml
-(** RFC 3492 Punycode: A Bootstring encoding of Unicode for IDNA.
+(** Punycode encoding for internationalised domain names.
 
-    This module implements the Punycode algorithm as specified in
+    Punycode represents Unicode labels in the ASCII subset permitted in host
+    names. This module implements
     {{:https://datatracker.ietf.org/doc/html/rfc3492}RFC 3492}.
 
     {2 References}
@@ -75,7 +80,7 @@ Create `spec/` directory if it doesn't exist.
 
 ```ocaml
 val adapt : delta:int -> numpoints:int -> firsttime:bool -> int
-(** [adapt ~delta ~numpoints ~firsttime] computes the new bias value.
+(** [adapt ~delta ~numpoints ~firsttime] is the new bias value.
 
     Implements the bias adaptation algorithm from
     {{:https://datatracker.ietf.org/doc/html/rfc3492#section-6.1}RFC 3492 Section 6.1}. *)
@@ -99,7 +104,7 @@ type error =
 
 ```ocaml
 val base : int
-(** The base value (36) for Punycode encoding.
+(** The base of the Punycode digit encoding. It is [36].
     See {{:https://datatracker.ietf.org/doc/html/rfc3492#section-5}
     RFC 3492 Section 5}. *)
 ```

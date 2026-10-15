@@ -397,11 +397,21 @@ vendor_check() {
     name="$(basename "$vl" .lock)"; cache="$ROOT/.vendor-cache/$name"
     sub="$(awk '/^subdir:/{print $2}' "$vl" 2>/dev/null)"
     sha="$(awk '/^commit:/{print $2}' "$vl" 2>/dev/null)"
-    vdir="$ROOT/vendor/$name/$(basename "$sub")"
+    # the landing dir is recorded, not recomputed: a vendored set may be the
+    # whole repo (subdir '.'), whose basename is no directory name at all
+    vdir="$ROOT/$(awk '/^location:/{print $2}' "$vl" 2>/dev/null)"
+    [ -d "$vdir" ] || vdir="$ROOT/vendor/$name/$(basename "$sub")"
+    # paths the lock declares as dropped at vendor time are not drift. Same
+    # rsync exclude syntax as the vendor step, so one spelling governs both.
+    local -a xargs_=(); local x
+    while IFS= read -r x; do [ -n "$x" ] && xargs_+=(--exclude="/$x"); done \
+      < <(awk '/^exclude:/{print $2}' "$vl" 2>/dev/null)
     if [ -d "$cache/.git" ] && [ -n "$sha" ]; then
       git -C "$cache" checkout -q --detach "$sha" 2>/dev/null || true
       drift="$(mktemp)"
-      if diff -rq --exclude='.git' "$cache/$sub" "$vdir" >"$drift" 2>&1; then
+      rsync -rcn --delete --itemize-changes --exclude='.git' "${xargs_[@]}" \
+        "$cache/$sub/" "$vdir/" >"$drift" 2>&1
+      if [ ! -s "$drift" ]; then
         echo "  $(green "✓") $name matches pinned $sha"
       else
         while IFS= read -r l; do warn "$name drift: $l"; done < <(head -20 "$drift")

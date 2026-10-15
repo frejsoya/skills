@@ -25,8 +25,9 @@ let[@zero_alloc] multiply : int -> int -> int = fun x y -> x * y
 **Forbidden** (causes check failure):
 - Heap allocation: tuples, records, variants, closures, etc.
 - Boxing: `int64`, `float` operations that box
-- Raising exceptions with backtrace (unless in error path)
 - Indirect calls (function passed as argument)
+- Under `strict` only: allocation on exception paths (default relaxed
+  semantics allows raising with backtrace)
 
 **Allowed**:
 - Stack allocation: `stack_`, `local_`
@@ -259,8 +260,11 @@ let[@zero_alloc] parse_packet buf =
 
 ### Zero-Alloc Option Handling with or_null
 
+`or_null` only accepts **value** types (`float# or_null` is a kind
+error), but for value payloads it avoids the `Some` allocation:
+
 ```ocaml
-let[@zero_alloc] find_value (arr : float# array) idx : float# or_null =
+let[@zero_alloc] find_value (arr : string array) idx : string or_null =
   if idx >= 0 && idx < Array.length arr then
     This arr.(idx)  (* No allocation with or_null *)
   else
@@ -306,10 +310,10 @@ Error: allocation of 24 bytes
 ### Controlling Detail Level
 
 ```bash
-# Show all allocations (default)
+# Show all allocations (any negative value)
 -zero-alloc-checker-details-cutoff -1
 
-# Show only first N
+# Show only first N (the default is 20)
 -zero-alloc-checker-details-cutoff 5
 
 # Show none (just fail)

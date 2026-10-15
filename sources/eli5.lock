@@ -1,0 +1,9 @@
+upstream: https://github.com/DreambigOu/ELI5.git
+subdir:   .
+policy:   vendored verbatim (pinned; never hand-edited)
+location: vendor/eli5/eli5/
+update:   make vendor-update
+commit:   a766623b062331fdde53467001379b4ddf3acc2f
+date:     2026-03-17 23:35:19 -0400
+subject:  Add eval guide blog post link to README
+exclude:  eli5-workspace

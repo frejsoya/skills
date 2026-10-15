@@ -19,7 +19,7 @@ let classify (b : bool#) : int =
 type flag = { enabled : bool#; count : int }
 ```
 
-Kind: `bits8 mod external_`.
+Kind: `bits8 mod everything` (same as `int8#`).
 
 ### Unboxed Unit (#5151, #5156)
 
@@ -38,13 +38,13 @@ let noop () : unit# = #()
 ### Simple Borrowing (`borrow_`) (#5215)
 
 New `borrow_` keyword: a prefix expression form (`borrow_ e`) that cooperates
-with the uniqueness analysis.  Borrows naturally fail with mode errors when
-used incorrectly rather than being artificially restricted by context checks.
-Typical uses:
+with the uniqueness analysis. It is valid in exactly three positions —
+anywhere else raises "The borrow_ operator must appear directly in a valid
+borrowing context" (`Borrowed_out_of_context`):
 
 ```ocaml
 let r = ref 0 in
-f (borrow_ r);           (* common: function argument *)
+f (borrow_ r);           (* function argument *)
 let y = borrow_ r in ... (* let-binding RHS *)
 match borrow_ r with _ -> ... (* match scrutinee *)
 ```
@@ -153,7 +153,9 @@ New `repr_` keyword introduces representation types in the parser/typechecker
 
 Kinds `bits8`, `bits16`, `bits32`, `bits64`, `float32`, `float64`,
 `untagged_immediate`, `vec128`, `vec256`, `vec512`, `void`, and `word` now
-implicitly include `mod external_`. This enables write-barrier elision.
+implicitly include `mod external_` (in fact by `minus-31` they mode-cross
+everything — the compiler prints e.g. `bits8 mod everything`). This enables
+write-barrier elision.
 
 To get the unmoded version, append `_internal`:
 
@@ -165,8 +167,8 @@ type t : bits64_internal mod external_
 
 ### New `-kind-verbosity` Flag (#5397)
 
-Controls jkind printing verbosity; adopted by Merlin in #5304. Related
-rendering fix in #5398.
+Controls jkind printing verbosity (the underlying verbosity option was
+added for Merlin in #5304). Related rendering fix in #5398.
 
 ### Mode Hints on Modules and Modalities (#5034, #5183)
 
@@ -280,7 +282,9 @@ Extended conversion primitives between small-int types.
 ### Other Layout Changes
 
 - Arrays of unboxed pairs of `vec128` now allowed (#5239).
-- Wide vectors on arm64 lowered to tuples (#5291, with `Pvec_reinterpret`).
+- Wide vectors on arm64 lowered to tuples (#5291, bridged by the
+  `Preinterpret_boxed_vector_as_tuple` / `Preinterpret_tuple_as_boxed_vector`
+  primitives).
 - Boxed vectors use tag 0 on amd64 (#5410) — a visible runtime tag change.
 - `Bigarray.Genarray.t` and friends now have `any`-kinded type parameters
   (#5135).
@@ -378,8 +382,9 @@ most users and is now handled exclusively in `Basement.Dynamic`.
 
 ### `%domain_index` Primitive (#5312)
 
-Returns the current domain's index as a non-polymorphic-compare variant.
-Wired through runtime4, runtime5, and arm64/amd64 codegen.
+Returns the current domain's index as an untagged int
+(`Pdomain_index`). Wired through runtime4, runtime5, and arm64/amd64
+codegen.
 
 ### Fibers Return to Allocating Domain (#5363)
 
@@ -401,77 +406,27 @@ programmatically visible.
 
 ## Runtime Metaprogramming / Quotes
 
-Significant work on the quotation / runtime-metaprogramming system
-(`CamlinternalQuote`, `Translquote`, `Pexp_quote`, `Pexp_splice`):
-
-- Type-information inspections under quotes (#5090, #5214): new
-  `type_inspection` extras on pat/exp; Printtyp utilities exposed for
-  object/variant representations.
-- Polymorphic applications under quotes (#5154): methods and higher-rank
-  intros/elims get annotated type spines; more robust printing for objects,
-  variants, package types.
-- Need-driven disambiguation of records and variants under quotes (#5094).
-- Borrow support in quotations (#5215).
-- Fix dropped annotation on `let rec` under quotes (#5083).
-- Typedtree mode fixes in `Translquote` (#5319).
+Significant internal work on the quotation / runtime-metaprogramming
+system (`CamlinternalQuote`, `Translquote`): type-information
+inspection, polymorphic applications, record/variant disambiguation,
+and borrow support under quotes (#5090, #5214, #5154, #5094, #5215),
+plus assorted fixes (#5083, #5319). Still experimental in this window.
 
 ---
 
-## Flambda 2 / Optimizer
+## Flambda 2 / Optimizer / Codegen (internal — condensed)
 
-- **Match-in-match**: wrapper continuations gain a `can_be_lifted` flag so
-  specialized-handler over-applications don't introduce invalid symbol
-  references (#5119).
-- **Inlining heuristics**: `value` arguments no longer count as "useful" for
-  speculative inlining (#5093). `value_or_null` was erroneously making value
-  args appear informative.
-- Constant-switch optimisations now work with jumps (#5200).
-- Invalid construct carried through Flambda → Cmm → Cfg → Linear (#5208),
-  removing special-case handling of `caml_flambda2_invalid` externals.
-- Fexpr primitive representation reworked (#5221): new auto-generated
-  descriptor model supports exn cont extra args, negative float literals,
-  float32, null. Regenerate with `make regen-flambda2-parser`.
-- Stack-slot tracking in flambda2 counters (#5132).
-- Rewrite-in-types: `Is_int` / `Get_tag` patterns (#5140); depth variables
-  in coercions (#5134).
-- **Reaper**: many crash fixes and correctness improvements across #5129,
-  #5137, #5139, #5142, #5144, #5145, #5147, #5374, #5377, #5379. Notable:
-  unused-arg unboxing of `any_source` callees, `result_types` parameter
-  ordering, `indirect_unknown_arity` argument deletion, unboxed-block call
-  crashes, over-zealous rebuild check, and prevention of unboxing the first
-  parameter of exception handlers.
-- **Simplify-terminator**: guarded against irreducible CFG transitions
-  (#5174, #5389).
-- Flow analysis: unused argument removed (#5370).
-- **Fallback inlining heuristic in classic mode**: was disabled in #5383 then
-  re-enabled in #5435 before the tag — net-zero at 5.2.0minus-31.
+All internal; no source changes needed. Highlights a user might notice:
 
----
-
-## CFG Backend / Codegen
-
-- **Bit-matrix interference graph for IRC** (#5296) with
-  `-regalloc-param BIT_MATRIX_THRESHOLD:k`. Interference graph extracted into
-  its own module (#5237); CI step added (#5414).
-- **CFG invariants**: liveness at function entry is now checked (#5375);
-  additional arity tests for terminators (#5388).
-- **Resynchronize `is_destruction_point`** with `destroyed_at_terminator` in
-  both backends (#5182).
-- **Consistent instruction ordering** between runtime4 and runtime5 (#5334).
-- **Doubly-linked lists** for x86 instruction lists (#4973).
-- **arm64 typed DSL** (#5193) and **binary emitter** (#5177) with helper
-  modules under `backend/arm64/binary_emitter/*`.
-- **Asm_directives utility functions** (#5340); better label/symbol/section
-  typing (#5185).
-- **64-bit `.eh_frame*` support** (#5303) with a partition-size sanity check.
-- **arm64 emit fix** for large stack offsets — uses `x16` for multi-instruction
-  load/store sequences when an LDR/STR immediate would be out of range
-  (#5130).
-- **Avoid switching stacks on `noalloc` C calls** in no-stack-check builds
-  (#5224). In stack-check builds, the OCaml stack pointer moves from `rbx` to
-  `r13` to reduce spilling pressure.
-- Allow builtin primitives with more than 5 args without `native_name`
-  (#5326) — enables `%with_stack_bind` and future 6-arg+ primitives.
+- Inlining heuristics tweaked (#5093, #5119); many reaper crash fixes
+  (#5129 … #5379); simplify-terminator hardened (#5174, #5389).
+- **Bit-matrix interference graph for IRC** (#5296) with a new
+  `-regalloc-param BIT_MATRIX_THRESHOLD:k` knob.
+- arm64: typed DSL + binary emitter (#5193, #5177); fix for large
+  stack offsets (#5130). 64-bit `.eh_frame*` support (#5303).
+- `noalloc` C calls no longer switch stacks in no-stack-check builds
+  (#5224); in stack-check builds the OCaml stack pointer moves from
+  `rbx` to `r13` (visible in debuggers/profilers).
 
 ---
 
@@ -496,17 +451,9 @@ The existing `-dissector-partition-size` now validates `0 < size < 2 GiB`.
 
 ## Runtime & Memory
 
-- **Faster minor-to-major promotion** (#5163): simpler `oldify_one`, exposed
-  free lists for fast promotion, free-list tip prefetching, `sizeclasses.h`
-  cleanup.
-- **Use `prefetchr` (read) instead of `prefetchw` (write)** during major GC
-  (#5416).
-- **Prefetching feature-detection macros** fixed (#5359).
-- **`musl` compatibility** for runtime5 and `ocaml-jit` (#5123), CI variant
-  added.
-- Build multidomain aarch64-linux in CI (#5229).
-- Ensure `requested_external_interrupt` is initialised before reading
-  (#5424).
+- **Faster minor-to-major promotion** (#5163) and GC prefetch tuning
+  (#5416, #5359) — performance only, no API change.
+- **`musl` compatibility** for runtime5 and `ocaml-jit` (#5123).
 
 ---
 
@@ -521,42 +468,23 @@ The existing `-dissector-partition-size` now validates `0 < size < 2 GiB`.
   (#5316).
 - `:standard` added to `ocamlopt_flags` (#5209).
 - `ocamlformat` upgraded to 0.28.1 (#5180, #5181) with tree-wide reformat.
-- **Chamelon** minimizer overhaul: subcommand support (`chamelon run`)
-  with old-syntax deprecation (#5421), module-minimization subcommand
-  (#5356), `Chamelon_lib` split out (#5353), `match` minimizer (#5212),
-  submodule/signature handling (#5294), scheduling combinators (#5354),
-  default-optional-param preservation (#5355), stub minimizer (#5292),
-  consistent ocamlformat (#5387), `--test` fixes (#5293), roundtrip check
-  (#5220).
+- **Chamelon** test-case minimizer overhauled (subcommands, e.g.
+  `chamelon run`; #5421 and ~10 related PRs).
 - New `[%%expect_asm]` directive for expect tests (#5350): captures
   normalised architecture-specific assembly.
 - Script to build individual files (#5404).
 
 ---
 
-## Bug Fixes (noteworthy)
+## Bug Fixes (user-visible)
 
-- Simplify-terminator: guard against irreducible graph transitions (#5174,
-  #5389).
-- `Widen` exception no longer escapes from zero-alloc checker's `V.join`
-  (#5179).
-- Fix `%unsafe_ptr_set` with NULL base (#5087).
-- Symbol projections with unboxed numbers (#5299).
-- Fix types for degraded value slots (#5427).
-- `printtyp` "undefined modalities" crash on value descriptions (#5382).
-- Environment scoping in jkind errors (#5173).
 - Backtraces no longer trashed by `Sys.getenv_opt` (#5076).
-- Dropped annotations on `let rec` under quotes (#5083).
-- Mode solver issue (#5233).
-- `untypeast` handles `Tpat_open` (#5203).
-- Pretty printer drops attributes on type parameters (#5286).
-- AST iterator fix for jkinds (#5273).
-- Coerce typing error printing (#5457).
-- Debug printing of mod bounds (#5164).
-- Fix args for `Cfg.Raise` (#5315).
-- x86 binary emitter: shift with memory dest + CL operand assertion (#5369).
-- arm64 large stack offsets (#5130).
-- Allow disabling redundancy warning on a single pattern (#5202).
+- Redundancy warning can be disabled on a single match pattern (#5202).
+- `printtyp` "undefined modalities" crash on value descriptions (#5382);
+  jkind error scoping (#5173); coerce error printing (#5457).
+- Zero-alloc checker: `Widen` exception no longer escapes `V.join` (#5179).
+- `%unsafe_ptr_set` with NULL base (#5087); symbol projections with
+  unboxed numbers (#5299). Plus ~10 internal compiler fixes.
 
 ---
 
