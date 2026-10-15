@@ -190,6 +190,19 @@ integrity() {
   done < <(awk -F/ '{print $NF}' "$all" | sort | uniq -d)
   rm -f "$all"
 
+  # 6. overrides of vendored skills (sources/overrides/overrides.lock): each resolves,
+  #    carries its attribution comment, and has no unresolved merge conflict.
+  echo "$(dim "• vendored-skill overrides")"
+  local odir ofile
+  while read -r odir _ _ _; do
+    case "$odir" in ''|'#'*) continue;; esac
+    ofile="$ROOT/$odir/SKILL.md"
+    if [ ! -f "$ofile" ]; then err "override '$odir' in overrides.lock has no SKILL.md"; continue; fi
+    grep -q '^<!-- override:' "$ofile" || err "$odir: missing '<!-- override:' attribution comment"
+    [ -f "$ROOT/sources/overrides/$(basename "$odir").md" ] || err "$odir: missing base snapshot sources/overrides/$(basename "$odir").md"
+    grep -qE '^(<{7}|\|{7}|={7}|>{7})( |$)' "$ofile" && err "$odir: unresolved merge conflict markers"
+  done < "$ROOT/sources/overrides/overrides.lock"
+
   echo
   echo "integrity: $(red "$((ERRORS-e0)) error(s)"), $(yellow "$((WARNS-w0)) warning(s)")"
   [ "$((ERRORS-e0))" -gt 0 ] && return 1 || return 0

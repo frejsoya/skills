@@ -1,0 +1,11 @@
+# Local overrides of vendored skills that keep tracking their upstream.
+#
+# Each override is a copy of an upstream skill file with local edits. On
+# `make vendor-update-<vendor>`, scripts/merge-overrides.sh three-way merges
+# the upstream changes since <base> into the override and advances <base>.
+# <base> is informational: the base file is kept at sources/overrides/<skill>.md.
+# The vendored copy itself stays excluded (VENDOR_EXCLUDE_<vendor>).
+#
+# override                           vendor               upstream file (in subdir)        base
+skills/engineering/ocaml-protocols   ocaml-claude-skills  skills/ocaml-protocols/SKILL.md  c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460
+skills/engineering/init-ocaml        ocaml-claude-skills  skills/init-ocaml/SKILL.md       c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460
