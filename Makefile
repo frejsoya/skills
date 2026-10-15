@@ -11,9 +11,10 @@
 # ---------------------------------------------------------------------------
 #
 # Skills are installed by symlinking each skill directory into a shared store
-# (default ~/.agents/skills), which both Claude Code (~/.claude/skills) and pi
-# (~/.pi/agent/skills) already read through their own symlinks. The repo stays
-# the source of truth: edit a SKILL.md here and it's live everywhere.
+# (default ~/.agents/skills). Each agent's skill path (~/.claude/skills,
+# ~/.pi/agent/skills) is a single symlink to that store, so new skills appear
+# everywhere without per-agent bookkeeping. The repo stays the source of truth:
+# edit a SKILL.md here and it's live everywhere.
 #
 # Override the target dir with SKILLS_DIR=..., e.g.
 #   make install SKILLS_DIR=~/.claude/skills

@@ -3,10 +3,11 @@
 # Install this repo's skills into your agent skills dirs by symlinking, so the
 # repo stays the single source of truth (edit here -> live everywhere).
 #
-# Layout on this machine: a shared store (~/.agents/skills) holds each skill, and
-# each agent dir (~/.claude/skills, ~/.pi/agent/skills) forwards into it. Install
-# populates the store with links to this repo, then ensures every agent dir has a
-# forwarding link for each skill (including brand-new ones).
+# Layout on this machine: a shared store (~/.agents/skills) holds one symlink per
+# skill pointing into this repo, and each agent path (~/.claude/skills,
+# ~/.pi/agent/skills) is a single symlink to the store. Install populates the
+# store, then ensures each agent path is that one symlink (backing up any real
+# directory it replaces). New skills appear in every agent automatically.
 #
 # Usage:
 #   install-skills.sh install   [STORE]
@@ -17,8 +18,8 @@
 #
 # Env:
 #   SKILLS_DIR       the shared store (default: $HOME/.agents/skills); arg overrides
-#   AGENT_DIRS       space-separated agent dirs to forward into
-#                    (default: auto-detect ~/.claude/skills ~/.pi/agent/skills)
+#   AGENT_DIRS       space-separated agent skill paths to point at the store
+#                    (default: ~/.claude/skills ~/.pi/agent/skills)
 #   INCLUDE_VENDOR   1 (default) to include vendored skills, 0 to skip
 set -euo pipefail
 
@@ -27,11 +28,12 @@ CMD="${1:-help}"
 STORE="${2:-${SKILLS_DIR:-$HOME/.agents/skills}}"
 INCLUDE_VENDOR="${INCLUDE_VENDOR:-1}"
 
-# Agent dirs that forward into the store. Auto-detect unless overridden.
+# Agent skill paths that should be a single symlink to the store. Auto-detect
+# (parent dir exists = agent installed on this machine) unless overridden.
 if [ -z "${AGENT_DIRS:-}" ]; then
   AGENT_DIRS=""
   for d in "$HOME/.claude/skills" "$HOME/.pi/agent/skills"; do
-    [ -d "$d" ] && [ "$d" != "$STORE" ] && AGENT_DIRS="$AGENT_DIRS $d"
+    [ -d "$(dirname "$d")" ] && [ "$d" != "$STORE" ] && AGENT_DIRS="$AGENT_DIRS $d"
   done
 fi
 
@@ -90,16 +92,13 @@ case "$CMD" in
     while IFS= read -r skip; do [ -z "$skip" ] && continue
       echo "  $(yellow "name collision:") skipped ${skip#"$ROOT"/} $(dim "(an earlier source provides '$(basename "$skip")')")"
     done < <(dupes)
-    # Phase 2: each agent dir -> store
+    # Phase 2: each agent path is one symlink to the store
     for adir in $AGENT_DIRS; do
-      mkdir -p "$adir"; fwd=0; abackup="$adir/.skills-backup-$ts"
-      while IFS= read -r src; do [ -z "$src" ] && continue
-        name="$(basename "$src")"
-        case "$(link_one "$STORE/$name" "$adir/$name" "$abackup")" in
-          skipped) ;; *) fwd=$((fwd+1));;
-        esac
-      done < <(discover)
-      echo "$(green "✓") agent $(bold "$adir"): $fwd forwarder(s) ensured"
+      abackup="$(dirname "$adir")/.skills-backup-$ts"
+      case "$(link_one "$STORE" "$adir" "$abackup")" in
+        backed) echo "$(green "✓") agent $(bold "$adir") -> store $(yellow "(old dir moved to $abackup)")";;
+        *)      echo "$(green "✓") agent $(bold "$adir") -> store";;
+      esac
     done
     echo "  $(dim "Restart the agent to pick up new/changed skills.")"
     ;;
@@ -107,6 +106,8 @@ case "$CMD" in
   uninstall)
     removed=0
     for tdir in $AGENT_DIRS "$STORE"; do
+      # agent paths that are symlinks to the store are covered by the store pass
+      [ "$tdir" != "$STORE" ] && [ "$(readlink -f "$tdir" 2>/dev/null)" = "$(readlink -f "$STORE" 2>/dev/null)" ] && continue
       while IFS= read -r src; do [ -z "$src" ] && continue
         name="$(basename "$src")"; link="$tdir/$name"
         # remove if it points at the store entry (agent dirs) or the repo (store)
@@ -125,30 +126,48 @@ case "$CMD" in
   prune)
     # Remove installed entries that no longer correspond to a repo skill:
     # stale/dangling symlinks are deleted; orphan real dirs are moved to a backup.
+    # Links pointing outside this repo belong to another installer (a tool that
+    # ships its own skill, another marketplace) and are left alone — prune only
+    # cleans up after itself.
     valid="$(discover | xargs -n1 basename 2>/dev/null | sort -u)"
     ts="$(date +%Y%m%d-%H%M%S)"
-    pruned=0 backed=0
+    pruned=0 backed=0 foreign=0
     for tdir in $AGENT_DIRS "$STORE"; do
       [ -d "$tdir" ] || continue
+      # agent paths that are symlinks to the store are covered by the store pass
+      [ "$tdir" != "$STORE" ] && [ "$(readlink -f "$tdir")" = "$(readlink -f "$STORE")" ] && continue
       for entry in "$tdir"/*; do
         [ -e "$entry" ] || [ -L "$entry" ] || continue
         name="$(basename "$entry")"
         case "$name" in .skills-backup-*|README.md) continue;; esac
         printf '%s\n' "$valid" | grep -qx "$name" && continue   # still a real skill
         if [ -L "$entry" ]; then
-          rm -f "$entry"; pruned=$((pruned+1))
-          echo "  $(yellow "− link") $tdir/$name"
+          case "$(readlink "$entry")" in
+            "$ROOT"/*) rm -f "$entry"; pruned=$((pruned+1))
+                       echo "  $(yellow "− link") $tdir/$name";;
+            *)         foreign=$((foreign+1))
+                       echo "  $(dim "· keep") $tdir/$name $(dim "-> not ours, left alone")";;
+          esac
         elif [ -d "$entry" ]; then
           mkdir -p "$tdir/.skills-backup-$ts"; mv "$entry" "$tdir/.skills-backup-$ts/$name"; backed=$((backed+1))
           echo "  $(yellow "− dir ") $tdir/$name $(dim "-> .skills-backup-$ts/")"
         fi
       done
     done
-    echo "$(green "✓") pruned $pruned stale link(s), backed up $backed orphan dir(s)"
+    echo "$(green "✓") pruned $pruned stale link(s), backed up $backed orphan dir(s), left $foreign foreign link(s)"
     ;;
 
   status)
-    echo "Store: $(bold "$STORE")   Agents:${AGENT_DIRS:- (none)}"
+    echo "Store: $(bold "$STORE")"
+    for adir in $AGENT_DIRS; do
+      if [ "$(readlink -f "$adir" 2>/dev/null)" = "$(readlink -f "$STORE" 2>/dev/null)" ]; then
+        echo "  $(green "●") agent $adir $(dim "-> store")"
+      elif [ -d "$adir" ]; then
+        echo "  $(yellow "○") agent $adir $(dim "real dir / not linked to store — run install")"
+      else
+        echo "  $(dim "·") agent $adir $(dim "absent — run install")"
+      fi
+    done
     while IFS= read -r src; do [ -z "$src" ] && continue
       name="$(basename "$src")"; link="$STORE/$name"
       if [ -L "$link" ] && [ "$(readlink "$link")" = "$src" ]; then
