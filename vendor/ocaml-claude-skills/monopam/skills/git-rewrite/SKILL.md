@@ -66,7 +66,7 @@ days as a second net, but backup branches are the primary undo.
 ## What a good series looks like
 
 Atomic (each commit compiles and tests green, so `git bisect` and reverts
-work), focused (one logical change each), ordered for reading (mechanical before
+work), focussed (one logical change each), ordered for reading (mechanical before
 semantic, refactors before the feature they enable), self-documenting (see the
 `git-commit` skill), with no fixup noise and no unrelated drive-by edits.
 
@@ -100,6 +100,25 @@ it if and only if the predicate dropped at least one entry from it *and* the
 resulting tree equals the parent's. Deliberately empty commits (`--allow-empty`
 for tags, CI triggers, milestones) survive, because the predicate never touched
 them. Root commits and merges with diverging parents are never dropped.
+
+**Census the shapes before the first drop.** A glob list copied from an ignore
+file misses captured files the ignore file never named (terminal captures such
+as `.ansi`, `.raw`, `.rec`, `.pty` and `.out`), so a second drop follows the
+first. The second pass costs
+a second backup ref and a second rename of every commit after the first dropped
+blob, and every clone rebases with `--onto` again. List the blobs first, group
+them by extension and by size, write the full glob list from that census,
+dry-run once, then drop once.
+
+<!-- $MDX skip -->
+```sh
+git rev-list --objects main |
+  git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' |
+  awk '$1 == "blob" { n = split($4, p, "."); print p[n] }' | sort | uniq -c
+```
+
+`git-x tree drop` prints no old-to-new commit map, and none is kept afterwards,
+because a sha is not evidence: the next rewrite makes it name nothing.
 
 **The index is deliberately left alone**, because it is shared state with agents
 running `git add`. So `git status` afterwards shows dropped paths as `A` (still

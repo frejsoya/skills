@@ -15,14 +15,14 @@
 My agent skills that I use every day to do real engineering - not vibe coding.
 
 > **Provenance — every skill is external; see [`sources/`](./sources/).** This
-> repo composes three upstreams that differ only by *edit policy*:
+> repo composes four upstreams that differ only by *edit policy*:
 > - **`skills/`** — a **diverged fork** of [`mattpocock/skills`](https://github.com/mattpocock/skills)
 >   (tracked via the `upstream` remote), adapted for OCaml/FP. We edit these;
 >   pull upstream improvements with `git merge upstream/main` (`make fork-status`).
 > - **`vendor/`** — skill sets **vendored verbatim** (pinned, never hand-edited;
->   `make vendor-update`): Anil Madhavapeddy's OCaml `ocaml-dev` plugin and
+>   `make vendor-update`): Anil Madhavapeddy's OCaml `ocaml-dev` plugin,
 >   Thomas Gazagnaire's [`monopam`](https://tangled.org/gazagnaire.org/ocaml-claude-skills)
->   plugin.
+>   plugin, and DreambigOu's [`ELI5`](https://github.com/DreambigOu/ELI5).
 >
 > There's no "ours vs theirs" — both are upstreams. Provenance and locks for each
 > live under [`sources/`](./sources/README.md).
@@ -37,10 +37,12 @@ My agent skills that I use every day to do real engineering - not vibe coding.
 >
 > The fork covers engineering *discipline* (tdd, diagnose, triage, architecture);
 > the vendored `ocaml-dev` set covers OCaml *domain* skills (eio, effects, result,
-> cmdliner, jsont, fuzz, memtrace, testing, code-style, project-setup, oxcaml);
+> cmdliner, jsont, testing, code-style, oxcaml);
 > the vendored `monopam` set covers monorepo *workflow* skills (cram, mdx,
 > git-commit, git-rewrite, ocaml-functors, interop-testing, perf, todo, plus
-> library skills for console, ocaml-observe, and requests).
+> library skills for console and ocaml-observe); and vendored `eli5`
+> covers *explanation* — pitching a topic, a diff, or an error at a named
+> audience (age, grade, job role, family member).
 >
 > **Recommended infrastructure.** Install an OCaml MCP server so the agent gets
 > type-aware navigation and build diagnostics instead of shelling out blind:

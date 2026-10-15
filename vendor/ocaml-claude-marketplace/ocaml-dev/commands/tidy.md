@@ -1,7 +1,7 @@
 ---
 description: Refactor and tidy OCaml code to be more idiomatic and maintainable
 argument-hint: [file-or-directory]
-allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
+allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Skill]
 ---
 
 # Tidy OCaml Code
@@ -11,6 +11,11 @@ This command analyzes and refactors OCaml code to make it more idiomatic, mainta
 ## Arguments
 
 Optional file or directory path: $ARGUMENTS (defaults to current directory)
+
+## Before You Start
+
+Invoke the `doc-style` skill. Comments and documentation are part of tidying,
+and that skill is the standard for both.
 
 ## Analysis Categories
 
@@ -96,7 +101,21 @@ match x with
 - Missing pretty-printers for main types
 - Unlabeled boolean parameters
 
-### 6. Modern OCaml Patterns
+### 6. Comments and Documentation
+
+**Look for:**
+- Comments inside an implementation that restate the code
+- Section banners and commented-out code
+- Doc comments in an `.ml` that has an `.mli`
+- Doc comments that describe the implementation rather than the behaviour
+- Function docs that do not open `[f x y] is ...`
+- Colons and em dashes joining clauses, and filler such as `This function`,
+  `Note that`, `simply`, `helper for`
+
+**Transform:** delete the first three outright. Rewrite the rest under the
+`doc-style` skill.
+
+### 7. Modern OCaml Patterns
 
 **Suggest:**
 - Labeled arguments for clarity

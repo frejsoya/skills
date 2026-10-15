@@ -140,10 +140,22 @@ check-all: integrity check links vendor-check
 # Vendored upstreams, verbatim + pinned. To add one: append its name to
 # VENDORS and define UPSTREAM_URL_<name> / UPSTREAM_SUB_<name>. It lands in
 # vendor/<name>/<basename of subdir>/ with a lock at sources/<name>.lock.
-VENDORS := ocaml-claude-marketplace ocaml-claude-skills
+#
+# VENDOR_EXCLUDE_<name> drops paths (relative to the subdir) at vendor time.
+# It is for skills an upstream ships that another source owns — recorded in
+# the lock and honoured by the drift check, so it stays a declared vendoring
+# decision rather than an undetectable hand-edit of vendor/.
+VENDORS := ocaml-claude-marketplace ocaml-claude-skills eli5
 
 UPSTREAM_URL_ocaml-claude-marketplace := https://github.com/avsm/ocaml-claude-marketplace.git
 UPSTREAM_SUB_ocaml-claude-marketplace := plugins/ocaml-dev
+# Crowbar fuzz skill dropped: the house fuzz library is alcobar, and the
+# Alcobar fuzz skill comes from ocaml-claude-skills. project-setup dropped:
+# init-ocaml owns new-package setup (house layout). Tool-conflict drops
+# (2026-08 review): progress (console owns progress/spinners), logs
+# (ocaml-observe owns logging wiring), memtrace (perf/obs owns allocation
+# profiling), tutorials (mdx/readme own MDX conventions).
+VENDOR_EXCLUDE_ocaml-claude-marketplace := skills/fuzz skills/project-setup skills/progress skills/logs skills/memtrace skills/tutorials
 
 UPSTREAM_URL_ocaml-claude-skills := https://tangled.org/gazagnaire.org/ocaml-claude-skills
 UPSTREAM_SUB_ocaml-claude-skills := plugins/monopam
@@ -213,12 +225,13 @@ _vendor-fetch-%:
 vendor-update-%: _vendor-fetch-%
 	@git -C ".vendor-cache/$*" checkout --quiet --detach "$(REF)"
 	@mkdir -p "$(call vdir,$*)"
-	@rsync $(RSYNC_FLAGS) ".vendor-cache/$*/$(UPSTREAM_SUB_$*)/" "$(call vdir,$*)/"
+	@rsync $(RSYNC_FLAGS) $(call vexcl,$*) ".vendor-cache/$*/$(UPSTREAM_SUB_$*)/" "$(call vdir,$*)/"
 	@sha=$$(git -C ".vendor-cache/$*" rev-parse HEAD); \
 	 date=$$(git -C ".vendor-cache/$*" log -1 --format='%ci' HEAD); \
 	 subj=$$(git -C ".vendor-cache/$*" log -1 --format='%s' HEAD); \
 	 printf 'upstream: %s\nsubdir:   %s\npolicy:   vendored verbatim (pinned; never hand-edited)\nlocation: %s\nupdate:   make vendor-update\ncommit:   %s\ndate:     %s\nsubject:  %s\n' \
 	   "$(UPSTREAM_URL_$*)" "$(UPSTREAM_SUB_$*)" "$(call vdir,$*)/" "$$sha" "$$date" "$$subj" > "sources/$*.lock"; \
+	 for e in $(VENDOR_EXCLUDE_$*); do echo "exclude:  $$e" >> "sources/$*.lock"; done; \
 	 echo ">> vendored $(call vdir,$*) @ $$sha"; \
 	 echo ">> wrote sources/$*.lock"
 	@if awk -v v="$*" '$$2 == v { f = 1 } END { exit !f }' sources/overrides/overrides.lock; then \

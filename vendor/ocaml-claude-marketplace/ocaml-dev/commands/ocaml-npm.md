@@ -1,7 +1,7 @@
 ---
 description: Set up npm publishing for OCaml projects via js_of_ocaml/wasm_of_ocaml
 argument-hint:
-allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
+allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Skill]
 ---
 
 # OCaml NPM Setup

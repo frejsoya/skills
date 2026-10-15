@@ -8,6 +8,11 @@ description: "OxCaml Core library extensions including Iobuf, Time_ns, and Bigst
 Jane Street's Core library builds on Base with additional OxCaml-specific
 features for I/O, concurrency, and system programming.
 
+> Signatures below are shown module-qualified (`val In_channel.input__local
+> : ...`) as documentation shorthand — they are not compilable `val` items.
+> Exact names/signatures track the installed base/core; check the `.mli`
+> if a call fails to typecheck.
+
 ## Mode-Aware I/O
 
 ### In_channel and Out_channel
@@ -211,13 +216,13 @@ end
 ```ocaml
 module Pipe : sig
   (* Read with local return *)
-  val read__local : 'a Reader.t -> [ `Ok of 'a | `Eof ] @ local Deferred.t
+  val read__local : 'a Reader.t -> ([ `Ok of 'a | `Eof ] Deferred.t) @ local
 
   (* Fold with local accumulator *)
   val fold__local
     :  'a Reader.t
     -> init:'acc
-    -> f:('acc -> 'a -> 'acc @ local Deferred.t)
+    -> f:('acc -> 'a -> ('acc Deferred.t) @ local)
     -> 'acc Deferred.t
 end
 ```
@@ -261,7 +266,8 @@ module Bigstring : sig
   val create : int -> t
   val init : int -> f:(int -> char) -> t
 
-  (* Local creation - stack allocated *)
+  (* Local creation - the OCaml wrapper is local;
+     the data itself always lives in C-heap memory *)
   val create__local : int -> t @ local
 
   (* From existing data *)
@@ -427,7 +433,7 @@ let find_field bigstring ~field_pos ~field_len =
 | Access speed | Fast | Fast | Both have optimized primitives |
 | Unboxed access | No | Yes | Bigstring has `_unboxed` variants |
 | mmap compatible | No | Yes | Bigstring can wrap mmap'd memory |
-| Local creation | Yes | Yes | Both support stack allocation |
+| Local creation | Yes | Wrapper only | Bigstring data is always C-heap |
 
 ---
 

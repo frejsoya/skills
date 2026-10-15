@@ -3,6 +3,12 @@ subdir:   plugins/monopam
 policy:   vendored verbatim (pinned; never hand-edited)
 location: vendor/ocaml-claude-skills/monopam/
 update:   make vendor-update
-commit:   73e186dc3e11eb55e55166724d1a1822c3be8408
-date:     2026-08-04 05:19:17 +0000
-subject:  claude-skills: adopt durable console displays
+commit:   c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460
+date:     2026-10-15 07:37:44 +0200
+subject:  claude-skills: the requests skill examples pass the monotonic clock
+exclude:  skills/monopam
+exclude:  skills/concurrent-claude
+exclude:  skills/fork-package
+exclude:  skills/ocaml-protocols
+exclude:  skills/init-ocaml
+exclude:  skills/requests

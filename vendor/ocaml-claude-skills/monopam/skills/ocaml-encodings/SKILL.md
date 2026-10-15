@@ -218,11 +218,11 @@ let v = parse_value s in interpret_codec codec v
 ```
 
 Two readers over one scanner is not two parsers, and a private scanner module is
-not a banned abstraction. What is banned is a *public* lexeme/token-stream API
-(jsonm-style events as a third surface beside `Value` and `Codec`). Both
-runtimes are correct and expected: `decode : 'a codec -> Value.t -> 'a` walks an
-AST you already hold; `of_string` streams bytes in one pass and is never
-implemented as `decode codec (Value.of_string s)`.
+not a banned abstraction. A *public* lexeme/token-stream API (jsonm-style events
+as a third surface beside `Value` and `Codec`) is banned. Both runtimes are
+correct and expected: `decode : 'a codec -> Value.t -> 'a` walks an AST you
+already hold; `of_string` streams bytes in one pass and is never implemented as
+`decode codec (Value.of_string s)`.
 
 ### Finally tagged
 
@@ -615,8 +615,8 @@ private; they are the deliberate public API.
 - **No backwards-compat shims.** Restructure cleanly and bump the major version;
   don't keep `decode'` beside a new `decode`.
 - **No format-buffet knobs.** Specs mandate UTF-8, so no
-  ``?encoding:[`UTF8|`UTF16|`Latin1]``. Whitespace is the real choice and goes
-  through `?indent` / `?preserve`.
+  ``?encoding:[`UTF8|`UTF16|`Latin1]``. Whitespace is the one choice, and it
+  goes through `?indent` / `?preserve`.
 - **No low-level machinery in the curated API.** `Base`, raw array maps,
   member-map builders and parser internals stay in the implementation `.mli` if
   siblings need them. Omit them from `foo.mli` unless you can say why an

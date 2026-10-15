@@ -7,48 +7,75 @@ You are writing code for the OxCaml compiler, a performance-focused fork of
 OCaml with Jane Street extensions. This guide covers OxCaml-specific features.
 You should already know standard OCaml.
 
-**Current target**: OxCaml `5.2.0minus-31`. The OCaml runtime reports
-itself as `5.2.0+ox` (unchanged from `5.2.0minus-25` — the runtime base
-has not moved). What did change in this window is the **bootstrap
-toolchain requirement**: building OxCaml now needs upstream OCaml
-`5.4.0` on `PATH` (previously `4.14.1`), via the `oxcaml-dev` opam
-package. A handful of 5.4.0 stdlib features (notably `Format_doc`, the
-`caml_array_make` symbol rename) were backported.
+**Current target**: OxCaml `5.2.0minus-39` — the **latest released
+version**, shipping as `ocaml-variants.5.2.0+ox` on the OCaml 5.2
+base. Later tags (`5.2.0minus-40`, `5.4.0-ox1`/`-ox2`) and main are
+**unreleased** development, covered by
+[CHANGES-unreleased.md](CHANGES-unreleased.md). Throughout these
+guides, **any feature gated "minus-40+", "5.4.0-ox*", "5.4 base", or
+"post-ox2" is unreleased** — don't use it unless targeting a compiler
+built from main.
 
-See [CHANGES-25-31.md](CHANGES-25-31.md) for what changed since
-`5.2.0minus-25`, and [CHANGES-23-25.md](CHANGES-23-25.md) for the prior
-window. The upgrade guide at the bottom of CHANGES-25-31.md is the
-right starting point when bumping a project between these versions.
+Change history, newest first — the upgrade guide at the bottom of each
+file is the right starting point when bumping a project:
 
-### Quick Upgrade Flags (25 → 31)
+- [CHANGES-unreleased.md](CHANGES-unreleased.md) — everything after
+  `5.2.0minus-39` (minus-40, the upstream-OCaml-5.4 merge, ox2, main)
+- [CHANGES-38-39.md](CHANGES-38-39.md) — `5.2.0minus-38` → `5.2.0minus-39`
+- [CHANGES-31-38.md](CHANGES-31-38.md) — `5.2.0minus-31` → `5.2.0minus-38`
+- [CHANGES-25-31.md](CHANGES-25-31.md), [CHANGES-23-25.md](CHANGES-23-25.md)
+  — earlier windows
 
-When diagnosing build failures after a version bump, check these first:
+### Quick Upgrade Flags (38 → 39)
 
-- **Bootstrap compiler** — building OxCaml now needs upstream OCaml `5.4.0`
-  on `PATH` (was `4.14.1`). The OxCaml runtime itself is still `5.2.0+ox`
-  — this is only the dev-time requirement. Use the `oxcaml-dev` opam
-  package per `HACKING.md`.
-- **Reserved keywords** — `borrow_`, `poly_`, `repr_`, `kind_`, plus literals
-  `#true`, `#false`, `#()` are now reserved. Identifiers collide → rename.
-- **`kind_abbrev_` → `kind_`** — the keyword was renamed. Mechanical fix.
-- **Mixed block layout v4 → v5** — `mixed_block_layout_v4` gone; use
-  `mixed_block_layout_v5`. C macro renames to match.
-- **`Effect` low-level primitives refactored** — public `('a, 'b)
-  continuation` is unchanged; internal `cont` gained a termination type
-  parameter and low-level primitives were renamed. Migrate
-  `caml_alloc_stack`/`%runstack` → `%with_stack`, and update `%resume`
-  call sites.
-- **Array primitive bindings** — `Array.make` / `Array.create_float` now
-  bind to `caml_array_make` / `caml_array_create_float`. Re-promote any
-  zero-alloc-checker expect tests. The old C symbols remain as shims,
-  so C externals linking against them still work.
-- **Non-`value` base kinds imply `mod external_`** — if you need the unmoded
-  form, use `_internal` (e.g. `bits64_internal`).
-- **`Obj.raw_field` / `Obj.set_raw_field` no longer `external`** — they're
-  now regular `val`s.
+When diagnosing build failures after a bump to minus-39, check these
+first:
 
-See CHANGES-25-31.md § *Breaking Changes and Upgrade Guide* for the full list
-and an ordered checklist.
+- **`unique_` / `once_` prefix syntax removed** — use
+  `(x @ unique)` in patterns, `(e : @ unique)` on expressions.
+  `local_` is kept.
+- **`-extension labeled_tuples` no longer exists** —
+  labeled tuples are always-on; repeated labels in one tuple are gone.
+- **Mixed `float`+`float#` records now require `[@@flatten_floats]`**
+  (hard error without it; such records get no unboxed `t#` version);
+  all-`float64` records are mixed blocks
+  (`[@@represent_as_float_array]` opts out). C layout asserts: v5 → v6.
+- **`Stdlib_stable.Iarray` local API removed** — `( .:() )`
+  and `*_local` functions gone (both survive only in
+  `Stdlib_stable.IarrayLabels`).
+- **`-ikinds` flag removed** — the ikinds checker is now the default;
+  `-no-ikinds` opts out.
+- **Scannable kind axes now meet instead of override** — an annotation
+  can only lower an axis.
+- **Magic number** 577 → 578 — rebuild everything including ppx
+  rewriters.
+
+See the *Breaking changes and upgrade guide* section of
+CHANGES-38-39.md for an ordered checklist.
+
+### Unreleased (after minus-39) — highlights
+
+On unreleased tags / main only (details in CHANGES-unreleased.md):
+
+- **OCaml 5.4 base** (`5.4.0-ox1`): `effect` becomes a keyword
+  (escape: `-keywords 5.2` / `--enable-keyword-edition=5.2`), effect
+  handler syntax (`| effect E, k ->`), `Stdlib.Iarray`,
+  `Pqueue`/`Pair`/`Repr`, `[| |]` literal disambiguation, atomic
+  record fields.
+- **Runtime 4 retired**; SIMD primitives on `float array` removed;
+  all-void variant constructors need
+  `[@immediate_all_void_constructor]`; effect-handler cases force the
+  function nonportable/stateful (all ox2).
+- Mixed `float`+`float#` records no longer *require*
+  `[@@flatten_floats]` (minus-40; default becomes non-flat);
+  `[@atomic]` field restrictions; kind-`any` fields under
+  `layouts_beta`; usable preemption (`Effect.Deep.Preemptible`,
+  `Domain.Tick.with_`).
+- `'a box` types, `int64_u`/`int32_u`/`nativeint_u` aliases,
+  `val poly_`/`let poly_`, implicit kinds in structures (ox2);
+  `array#`/`iarray#`, warnings 183/184 on by default, warning 220
+  `redundant-modality` (post-ox2 main).
+- Magic numbers 578 → 581 across the unreleased windows.
 
 ## Detailed Guides
 
@@ -100,9 +127,23 @@ val f : ('a : value). 'a -> 'a          (* kind-polymorphic *)
 let pair = ~x:1, ~y:2                   (* labeled tuple *)
 let ~x, ~y = pair                       (* destructuring *)
 
-(* Immutable arrays *)
+(* Immutable arrays — module is Stdlib_stable.Iarray on released
+   compilers (Stdlib.Iarray only on the unreleased 5.4 base) *)
 let arr : int iarray = [: 1; 2; 3 :]
-let x = arr.:(0)
+let x = Stdlib_stable.Iarray.get arr 0
+                            (* a.:(n) needs Stdlib_stable.IarrayLabels *)
+
+(* Effect handlers — UNRELEASED (5.4 base; forces fn
+   nonportable/stateful) *)
+let run c = match c () with
+  | v -> v
+  | effect Poke, k -> Effect.Deep.continue k ()
+
+(* Box types — UNRELEASED (5.4.0-ox2+): boxed version of an unboxed
+   type: float# box = float;  r# box = r *)
+
+(* Unboxed number aliases — UNRELEASED (5.4.0-ox2+) *)
+let n : int64_u = #42L      (* int64_u = int64#, int32_u, nativeint_u *)
 
 (* Unboxed tuple destructuring - use #(...) pattern *)
 let #(a, b) = some_unboxed_pair
@@ -114,7 +155,7 @@ let[@zero_alloc] fast_add x y = x + y
 (* Borrowing (5.2.0minus-31+) - prefix form cooperating with uniqueness *)
 let r = ref 0 in f (borrow_ r)          (* typical: function argument *)
 
-(* Implicit kinds in signatures (5.2.0minus-31+) *)
+(* Implicit kinds (5.2.0minus-31+; also in structures since ox2) *)
 module type S = sig
   [@@@implicit_kind: ('elt : word)]
   type 'elt collection                  (* 'elt defaults to kind word *)
@@ -134,8 +175,17 @@ Modes track runtime properties of values. Each mode axis is independent.
 | Locality | `local`, `global` | `global` | Where value lives (stack vs heap) |
 | Uniqueness | `unique`, `aliased` | `aliased` | Number of references |
 | Linearity | `once`, `many` | `many` | How often closures can be called |
-| Portability | `portable`, `shareable`, `nonportable` | `nonportable` | Cross-thread safety |
-| Contention | `contended`, `shared`, `uncontended` | `uncontended` | Thread access patterns |
+| Portability | `portable`, `corruptible`, `shareable`, `nonportable` | `nonportable` | Cross-thread safety |
+| Contention | `uncontended`, `shared`, `corrupted`, `contended` | `uncontended` | Thread access patterns |
+| Visibility | `read_write`, `read`, `write`, `immutable` | `read_write` | Mutable-field access rights |
+| Statefulness | `stateless`, `reading`, `writing`, `stateful` | `stateful` | Closed-over mutable state |
+
+Portability/contention and visibility/statefulness are 4-element
+**diamonds** (`shared`/`corrupted` and `read`/`write` are
+incomparable). `observing` was renamed to `reading` in 5.2.0minus-36.
+This table is the user-facing subset — the compiler also tracks
+`yielding`, `forkable`, and `staticity` axes.
+See [SKILL-MODES.md](SKILL-MODES.md).
 
 ### Syntax
 
@@ -151,9 +201,8 @@ val g : t @ unique once -> t @ aliased many
 (* On expressions *)
 let x = (expr : t @ local)
 
-(* On let bindings *)
-let local_ x = ...                    (* shorthand for local *)
-let global_ x = ...
+(* On let bindings — local_ is the only legacy prefix (global is default) *)
+let local_ x = ...
 
 (* On record fields - modalities *)
 type t = {
@@ -165,12 +214,12 @@ type t = {
 ### Subtyping Rules
 
 More restrictive modes can be used where less restrictive are expected:
-- `local` ≤ `global` (can use local where global expected? NO - reversed)
 - `global` ≤ `local` (can use global where local expected)
 - `unique` ≤ `aliased` (can use unique where aliased expected)
 - `many` ≤ `once` (can use many where once expected)
-- `portable` ≤ `shareable` ≤ `nonportable`
-- `uncontended` ≤ `shared` ≤ `contended`
+- `portable` ≤ `shareable`/`corruptible` ≤ `nonportable` (diamond:
+  `shareable` and `corruptible` are incomparable)
+- `uncontended` ≤ `shared`/`corrupted` ≤ `contended` (diamond)
 
 ---
 
@@ -268,7 +317,7 @@ Arrays of untagged types are packed for memory efficiency:
 (* Untagged int arrays - tightly packed *)
 let bytes : int8# array = [| #0s; #1s; #255s |]
 let shorts : int16# array = [| #0S; #1S; #32767S |]
-let ints : int# array = [| #0; #1; #42 |]
+let ints : int# array = [| #0m; #1m; #42m |]   (* int# literal suffix is m *)
 let chars : char# array = [| #'a'; #'b'; #'c' |]
 
 (* int8# array: 1 byte per element *)
@@ -312,15 +361,21 @@ type mixed = {
 
 ### or_null Type
 
-Non-allocating option for nullable values:
+Non-allocating option for **value** types (`Null` is encoded without a box).
+The argument must be a non-null value type — `float# or_null` is rejected:
 
 ```ocaml
 type 'a or_null = Null | This of 'a
 
-(* Use for optional unboxed values without allocation *)
-let find_float arr idx : float# or_null =
+(* Use instead of option to avoid the Some allocation *)
+let find (arr : string array) idx : string or_null =
   if idx < Array.length arr then This arr.(idx)
   else Null
+
+(* Custom or_null types: any two-constructor variant (one nullary,
+   one unary) can opt into the same non-allocating encoding *)
+type 'a maybe = Nope | Yep of 'a [@@or_null]
+type no_param = A | B of int [@@or_null]   (* payload shape free (ox2+) *)
 ```
 
 ---
@@ -336,10 +391,13 @@ any                           (* any layout *)
 ├── value                     (* standard OCaml boxed values *)
 ├── float64                   (* 64-bit floats *)
 ├── float32                   (* 32-bit floats *)
+├── bits8                     (* 8-bit integers: int8#, bool#, char# *)
+├── bits16                    (* 16-bit integers: int16# *)
 ├── bits32                    (* 32-bit integers *)
 ├── bits64                    (* 64-bit integers *)
 ├── word                      (* native word size *)
-└── void                      (* uninhabited *)
+├── vec128 / vec256           (* SIMD vectors *)
+└── void                      (* zero-width; unit# lives here *)
 ```
 
 ### Kind Annotations
@@ -362,9 +420,9 @@ type pair : float64 & bits32    (* unboxed pair of float# and int32# *)
 ### Kind Abbreviations
 
 ```ocaml
-value           = value_or_null mod non_null separable
-immediate       = value mod external_
-immediate64     = value mod external64
+value           = value_or_null non_null separable
+immediate       = value non_pointer     (* crosses all modal axes *)
+immediate64     = value non_pointer64
 mutable_data    = value mod non_float
 immutable_data  = value mod non_float immutable
 ```
@@ -463,7 +521,7 @@ Python/Haskell-style list and array builders.
 (* Multiple conditions *)
 [ x + y for x = 1 to 10 for y = 1 to 10 when x < y when x + y < 15 ]
 
-(* Parallel iteration (evaluated together) *)
+(* Simultaneous iterators (sources evaluated once; still a product) *)
 [ x + y for x = 1 to 3 and y = 10 to 12 ]
 ```
 
@@ -485,16 +543,19 @@ Python/Haskell-style list and array builders.
 
 ### Key Differences: `for` vs `and`
 
-- `for ... for ...`: Nested (inner re-evaluated each outer iteration)
-- `for ... and ...`: Parallel (both evaluated once upfront)
+Both produce the **Cartesian product** — comprehensions cannot zip.
+
+- `for ... for ...`: Nested (inner source re-evaluated each outer iteration;
+  inner iterators may reference outer variables)
+- `for ... and ...`: Sources evaluated once upfront; iterators are
+  independent (cannot reference each other); enables exact-size array
+  pre-allocation
 
 ```ocaml
-(* Nested: 9 elements *)
+(* Both are 9 elements *)
 [ (x, y) for x = 1 to 3 for y = 1 to 3 ]
-
-(* Parallel: 3 elements *)
 [ (x, y) for x = 1 to 3 and y = 10 to 12 ]
-(* = [(1,10); (2,11); (3,12)] *)
+(* = [(1,10); (1,11); (1,12); (2,10); ...] *)
 ```
 
 ---
@@ -528,7 +589,7 @@ open Ocaml_simd_sse
 
 let v = Float32x4.set 1.0 2.0 3.0 4.0
 let v = Float32x4.sqrt v
-let x, y, z, w = Float32x4.splat v
+let x, y, z, w = Float32x4.to_tuple v
 
 (* Load from arrays *)
 let v = Int8x16.String.get text ~byte:0
@@ -670,13 +731,13 @@ Safe parallel programming with thread isolation.
 ### Contention Modes
 
 - `contended`: May be accessed from multiple threads concurrently
-- `shared`: May be accessed from multiple threads (for shared state)
+- `shared` / `corrupted`: intermediate diamond points (see section 1 table)
 - `uncontended`: Single-thread access
 
 ### Portability Modes
 
 - `portable`: Safe to move across thread boundaries, captures all values at contended
-- `shareable`: May execute in parallel, captures shared state
+- `shareable` / `corruptible`: intermediate diamond points
 - `nonportable`: Thread-local only, captures uncontended mutable state
 
 ### Capsules (Experimental)
@@ -691,14 +752,34 @@ type 'a capsule
 val with_capsule : 'a capsule -> ('a @ local -> 'b) -> 'b
 ```
 
+### Preemption (Experimental, UNRELEASED — minus-40+)
+
+On the released `minus-39`, only groundwork exists: the
+`Effect.Preemption` effect constructor and
+`Domain.Tick.acquire ~interval_usec`/`release` (tick frequency). The
+usable API is unreleased: run code under
+`Effect.Deep.Preemptible.match_with`/`try_with` (whose handler has a
+signal-safe `tickc : unit -> tick_outcome` field returning `Preempt` or
+`Continue`), with ticks from `Domain.Tick.acquire` or the scoped
+`Domain.Tick.with_`. A preempted fiber performs the `Effect.Preemption`
+effect. Default-off; effectively requires a compiler built with
+`--enable-poll-insertion`.
+
+### Effect Handlers and Modes (UNRELEASED — 5.4 base)
+
+Upstream 5.4's `match ... with effect E, k -> ...` syntax arrives with
+the unreleased 5.4 rebase, but a function containing effect cases is
+forced **nonportable and stateful** (5.4.0-ox2) — you cannot
+pattern-match on effects inside a `portable` or `stateless` function.
+
 ---
 
 ## 11. Borrowing (5.2.0minus-31+)
 
 The `borrow_` keyword is a prefix expression form (`borrow_ e`) that
-cooperates with the uniqueness analysis. It parses anywhere an
-expression is valid — misuse produces **mode errors**, not parse
-errors. Typical positions where you'll actually want it:
+cooperates with the uniqueness analysis. It is valid in **exactly
+three positions** — anywhere else is a hard "invalid borrowing
+context" error:
 
 ```ocaml
 let update_if_positive r =
@@ -721,11 +802,12 @@ transiently and you want to keep the unique reference after the call.
 
 ---
 
-## 12. Implicit Kinds in Signatures (5.2.0minus-31+)
+## 12. Implicit Kinds in Signatures and Structures (5.2.0minus-31+)
 
-A floating `[@@@implicit_kind: ...]` attribute at the top of a signature
-declares that specific type-variable names default to a chosen kind. It
-saves repetitive per-declaration annotations:
+A floating `[@@@implicit_kind: ...]` attribute declares that specific
+type-variable names default to a chosen kind. It saves repetitive
+per-declaration annotations. Signatures-only on released compilers
+(allowed in structures since the unreleased 5.4.0-ox2):
 
 ```ocaml
 module type Word_collection = sig
@@ -746,7 +828,8 @@ val swap : 'a * 'b -> 'b * 'a
 
 Rules: implicit kinds can't be overridden in nested signatures, don't
 propagate through `include`, apply inside `constraint` clauses, and are
-not legal in structures. See [SKILL-KINDS.md](SKILL-KINDS.md) for details.
+not legal in structures (until the unreleased ox2). See
+[SKILL-KINDS.md](SKILL-KINDS.md) for details.
 
 ---
 
@@ -778,12 +861,20 @@ val dimensions : image -> width:int * height:int
 (* Syntax uses : instead of | *)
 let arr : string iarray = [: "a"; "b"; "c" :]
 
-(* Access *)
-let first = arr.:(0)
+(* Access — module is Stdlib_stable.Iarray on released compilers *)
+let first = Stdlib_stable.Iarray.get arr 0
+
+(* a.:(0) works only with Stdlib_stable.IarrayLabels open —
+   the ( .:() ) operator was removed from Stdlib_stable.Iarray
+   in minus-39 *)
 
 (* Covariant - allows safe subtyping *)
 let arr2 : obj iarray = (arr : sub_obj iarray :> obj iarray)
 ```
+
+UNRELEASED (5.4 base): `Iarray` moves to `Stdlib`, and plain
+`[| e1; e2 |]` literals disambiguate to `iarray` (or `floatarray`)
+from the expected type.
 
 ### Include Functor
 
@@ -934,6 +1025,10 @@ type%template ('a : k) box = { contents : 'a }
 2. **Kind errors**: Ensure type parameters have correct layout annotations
 3. **Zero-alloc failures**: Use `-zero-alloc-checker-details-cutoff -1` for full details
 4. **Template issues**: Check mangled names with `__suffix` pattern
+5. **Mangled symbols** (UNRELEASED, 5.4.0-ox2+): pipe through `ocamlfilt` (installed
+   with the compiler) — handles flat and structured mangling schemes
+6. **Native debugging**: use the OxCaml LLDB build (`21.1.0+oxcaml0`);
+   `b Module.fn` breakpoints and OCaml-syntax value printing work
 
 ---
 
@@ -941,7 +1036,13 @@ type%template ('a : k) box = { contents : 'a }
 
 ### Core Libraries
 
-- **`stdlib_stable`**: Immutable arrays (`Iarray`), `Float32`, `Int8`, `Int16`, `Char_u`
+- **`stdlib_stable`** (the released home for OxCaml types):
+  `Iarray`/`IarrayLabels` (the `( .:() )` operator and `*_local`
+  functions survive only in `IarrayLabels`), `Float32`, `Int8`,
+  `Int16`, `Char_u`, `Or_null`, `Idx_imm`/`Idx_mut`
+- **`Stdlib`** (UNRELEASED 5.4 base): `Iarray` moves upstream, plus
+  new upstream modules `Pqueue`, `Pair`, `Repr`, `Dynarray`,
+  `Atomic.Loc`
 - **`base`**: Jane Street's standard library with comprehensive OxCaml mode support
   - **IMPORTANT**: Consult [SKILL-BASE.md](SKILL-BASE.md) for OxCaml-friendly functions!
   - Contains 116 modules with extensive local/exclave, mode, and unboxed type support

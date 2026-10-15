@@ -130,8 +130,8 @@ Only JSON has browser-native parsing; other formats get no `.brr` sub-library.
 The shape mirrors the core six verbs with the native types swapped in: `Jstr.t`
 parallels `string`, `Jv.t` parallels `Bytes.Reader.t` (the zero-copy path). Put
 it in a separate public library and module (`json.brr` exposing `Json_brr`), not
-a nested `Json.Brr`, so the core stays dependency-free and opam deps stay
-honest.
+a nested `Json.Brr`, so the core stays dependency-free and its opam dependencies
+list only what the core uses.
 
 ```ocaml
 module Json_brr : sig

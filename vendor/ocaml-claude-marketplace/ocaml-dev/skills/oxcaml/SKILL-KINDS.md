@@ -24,12 +24,14 @@ any                              (* Top kind - any layout *)
 ├── bits32                       (* Unboxed 32-bit integer *)
 ├── bits64                       (* Unboxed 64-bit integer *)
 ├── word                         (* Native word size *)
+├── untagged_immediate           (* int# — native word, untagged *)
 └── vec128 / vec256 / vec512     (* SIMD vectors *)
 ```
 
-Note: as of 5.2.0minus-31, all non-`value` base kinds listed above imply
-`mod external_` by default. Use the `_internal` suffix (e.g.
-`bits64_internal`) to refer to the unmoded form.
+Note: as of 5.2.0minus-31, all non-`value` base kinds listed above
+mode-cross **everything** (they behave as `mod everything`, which
+includes externality). (The `_internal` opt-out suffix that briefly
+existed was removed in 5.2.0minus-38 — there is no unmoded form.)
 
 ## Basic Kind Annotations
 
@@ -67,8 +69,8 @@ type ('a : value, 'b : float64) mixed = {
 val id : ('a : value). 'a -> 'a
 val id_float : ('a : float64). 'a -> 'a
 
-(* Mixed *)
-val convert : ('a : bits32). 'a -> ('b : bits64). 'b
+(* Mixed — all quantified variables go before the dot *)
+val convert : ('a : bits32) ('b : bits64). 'a -> 'b
 ```
 
 ### On Locally Abstract Types
@@ -90,8 +92,9 @@ Common kind patterns have shorthand names:
 value           (* Boxed OCaml values, GC-managed *)
 immediate       (* Tagged integers: int, char, bool, etc. *)
 immediate64     (* Immediate on 64-bit, boxed on 32-bit *)
-mutable_data    (* value mod non_float - records with mutable fields *)
-immutable_data  (* value mod non_float immutable *)
+mutable_data    (* records with mutable fields (glossed; the real
+                   definition crosses several mode axes, not contention) *)
+immutable_data  (* immutable non-float data; crosses contention too *)
 ```
 
 ### Kind Declarations (`kind_` keyword)
@@ -108,27 +111,45 @@ Consumers of `compiler-libs` should note that the parsetree
 constructors are now `Psig_jkind` / `Pstr_jkind` carrying a
 `jkind_declaration` record.
 
-### Non-`value` Base Kinds Imply `mod external_` (5.2.0minus-31+)
+### Non-`value` Base Kinds Cross Everything (5.2.0minus-31+)
 
-The following base kinds now **implicitly include `mod external_`** so
-that write-barrier elision applies automatically:
+The following base kinds **implicitly mode-cross all axes** (including
+externality, so write-barrier elision applies automatically):
 
 `bits8`, `bits16`, `bits32`, `bits64`, `float32`, `float64`,
 `untagged_immediate`, `vec128`, `vec256`, `vec512`, `void`, `word`.
 
-To express the unmoded form, append `_internal`:
+There is no opt-out: the `_internal` suffix (e.g. `bits64_internal`)
+that existed briefly in minus-31..37 was **removed in 5.2.0minus-38**.
+The combination "non-`value` layout, not `mod external_`" is not
+expressible.
+
+### Scannable Axes (semantics changed in 5.2.0minus-39)
+
+Scannable axes (`non_pointer`, `non_pointer64`, `non_float`,
+`separable`, `maybe_separable`, plus nullability) are written after a
+layout: `value non_pointer`. Since 5.2.0minus-39 (#5921), a written
+axis takes the **meet** with the layout's existing bound — it can only
+*lower* the axis, never raise it. `value maybe_separable` therefore
+equals `value`, and `k mod axis` is equivalent to `k axis` (the `mod`
+spelling for scannable axes is deprecated). `value` itself is defined
+as `value_or_null non_null separable`; `immediate` is
+`value non_pointer`.
+
+Since 5.4.0-ox2, scannable axes can also be written on **abstract
+kinds** and on arbitrary kind expressions:
 
 ```ocaml
-(* These are the same *)
-type t : bits64
-type t : bits64_internal mod external_
+module type S = sig
+  kind_ k
+  val get : ('a : k separable). 'a array -> 'a
+end
 
-(* Unmoded — rare; values may need scanning *)
-type t : bits64_internal
+type t4 : (value & value) non_pointer     (* parses; warning 184 if no
+                                             effect — 183/184 are on by
+                                             default post-ox2 *)
+type t5 : (value mod global) non_pointer
 ```
-
-Prefer the short form. Only reach for `*_internal` when you need a type
-whose unboxed storage is nonetheless subject to the GC write barrier.
 
 ### What Types Have Which Kinds?
 
@@ -201,8 +222,11 @@ type crosser : value mod global local
 | `mod global` | Cannot be local |
 | `mod portable` | Safe for cross-thread |
 | `mod external_` | GC ignores it (immediate) |
-| `mod non_float` | Not a float (for array optimization) |
 | `mod immutable` | No mutable fields |
+
+(`non_float` is a *scannable axis*, not a mode bound — write it
+postfix as `value non_float`; the `mod non_float` spelling is
+deprecated. See "Scannable Axes" above.)
 
 ---
 
@@ -254,12 +278,13 @@ type upair = #(int * int)
 
 ---
 
-## Implicit Kinds in Signatures (5.2.0minus-31+)
+## Implicit Kinds in Signatures and Structures (5.2.0minus-31+)
 
 A floating attribute `[@@@implicit_kind: ...]` declares that specific
-type-variable names in a signature default to a chosen kind. The goal
-is to avoid repeating the same `('a : k)` annotation on every
-declaration.
+type-variable names default to a chosen kind. The goal is to avoid
+repeating the same `('a : k)` annotation on every declaration.
+Originally signatures-only; since 5.4.0-ox2 it also works in
+structures and at the module toplevel (#6114).
 
 ```ocaml
 module type S = sig
@@ -290,20 +315,23 @@ val swap : 'a * 'b -> 'b * 'a
 
 ### Rules and Limits
 
-- **Can't override**: a variable declared with an implicit kind must
-  always have that kind. Narrowing or contradicting it is an error.
+- **Can't override per-declaration**: a variable declared with an
+  implicit kind must have that kind where used. Narrowing or
+  contradicting it at a use site is an error.
 - **Inherited by nested signatures**: a `module type` or `sig` *within*
   the same module type sees the outer `[@@@implicit_kind: ...]`
   declaration.
-- **Can't be re-declared** in a nested signature. This is an error ("The
-  implicit kind for X is already defined at ...").
+- **Re-declaration is allowed** (since 5.2.0minus-39, #5980): a later
+  `[@@@implicit_kind: ('a : k2)]` shadows an earlier one for
+  subsequent items. (It used to be an error.)
 - **No propagation through `include`**: if `T` does `include S`, the
   implicit kinds declared in `S` do **not** carry over into `T`.
+  Implicit kinds are lexical defaults, not part of the interface.
 - **`constraint` clauses**: implicit kinds apply, so a `constraint` on
   `'elt` respects the declared kind. In fact, implicit kinds are
   currently the only way to set a constraint to certain kind values.
-- **Structures**: `[@@@implicit_kind: ...]` is not legal inside a
-  structure — signatures only.
+- **Structures**: allowed since 5.4.0-ox2 (#6114); before that,
+  signatures only.
 
 ### When to Reach for It
 
@@ -312,6 +340,62 @@ one or two named type variables at a non-`value` kind — typical for
 libraries specialised to `word`, `bits64`, or an immediate. It's not
 meant as a replacement for `ppx_template` for kind-polymorphic code
 that also needs a `value` instantiation.
+
+---
+
+## Fields and Constructor Args of Kind `any` (UNRELEASED, 5.2.0minus-40+)
+
+Under `-extension layouts_beta`, record fields, constructor arguments,
+inline-record fields, and unboxed-record fields may have kind `any`:
+
+```ocaml
+type ('a : any) t = { fst : 'a; mutable snd : 'a }
+let fst (t : int t) = t.fst    (* ok: instantiated representably *)
+
+let fst (type a : any) (t : a t) = t.fst
+(* Error: Fields being projected must be representable. *)
+```
+
+Projections and constructions require the type to be representable at
+the use site.
+
+## Box Types (UNRELEASED, 5.4.0-ox2+)
+
+`'a box` is a predefined type constructor (parameter kind `any`) that
+denotes the boxed version of a type and reduces during unification:
+
+```ocaml
+float# box = float        int64# box = int64
+int# box = int            #(int64# * string) box = int64# * string
+type r = { x : int }      (* r# box = r *)
+type ('a : any) b = 'a box (* float# b = float *)
+```
+
+No extension flag needed. Nominality is preserved (an unboxed record's
+`box` only unifies with *its own* boxed record). Float records have no
+unboxed version and don't unify with `_ box`.
+
+## Unboxed Number Names: `int64_u` etc. (UNRELEASED, 5.4.0-ox2+)
+
+`int64_u = int64#`, `int32_u = int32#`, `nativeint_u = nativeint#` are
+predefined aliases on unreleased compilers. The `#`-suffixed names are
+slated to be removed there (they are not true unboxed versions of the
+boxed custom-block types) — prefer the `_u` names once on a build that
+has them; on released compilers keep using the `#` names.
+
+## `val poly_` and `let poly_` (UNRELEASED, layout polymorphism)
+
+Since the unreleased 5.4.0-ox2, signatures support layout-polymorphic
+value descriptions:
+
+```ocaml
+val poly_ mk : 'a -> 'b -> #('a * 'b)
+val poly_ mk2 : ('a : immediate) 'b. 'a -> 'b -> #('a * 'b)
+```
+
+Warning 219 `Useless_valpoly` fires if there are no layout-polymorphic
+variables. A `let poly_` binding with no layout variables is an
+**error** (was warning 217, which no longer exists).
 
 ---
 
@@ -473,6 +557,7 @@ type measurement = {
 | `bits32` | `int32#` | No | 4 bytes |
 | `bits64` | `int64#` | No | 8 bytes |
 | `word` | `nativeint#` | No | native |
+| `untagged_immediate` | `int#` | No | native |
 | `void` | `unit#` | - | 0 |
 | `any` | (any of above) | Varies | Varies |
 

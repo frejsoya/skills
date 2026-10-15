@@ -9,6 +9,7 @@ original to this repo — so there's no "ours vs theirs". Sources differ only by
 | [`mattpocock/skills`](https://github.com/mattpocock/skills) | **forked & diverged** — we adapt these for OCaml/FP | `skills/` | `git merge upstream/main` then resolve | [`mattpocock-skills.lock`](./mattpocock-skills.lock) |
 | [`avsm/ocaml-claude-marketplace`](https://github.com/avsm/ocaml-claude-marketplace) | **vendored verbatim** — never hand-edited | `vendor/ocaml-claude-marketplace/` | `make vendor-update-ocaml-claude-marketplace` | [`ocaml-claude-marketplace.lock`](./ocaml-claude-marketplace.lock) |
 | [`gazagnaire.org/ocaml-claude-skills`](https://tangled.org/gazagnaire.org/ocaml-claude-skills) | **vendored verbatim** — never hand-edited | `vendor/ocaml-claude-skills/` | `make vendor-update-ocaml-claude-skills` | [`ocaml-claude-skills.lock`](./ocaml-claude-skills.lock) |
+| [`DreambigOu/ELI5`](https://github.com/DreambigOu/ELI5) | **vendored verbatim** — never hand-edited | `vendor/eli5/` | `make vendor-update-eli5` | [`eli5.lock`](./eli5.lock) |
 
 ## Why two locations
 
@@ -25,10 +26,38 @@ The split is by edit policy, not authorship:
   `git` won't warn you if you edit them; the lint will (`vendor/` is read-only
   by convention). Each vendored set lives at `vendor/<name>/<plugin>/`:
   - `ocaml-claude-marketplace/ocaml-dev/` — Anil Madhavapeddy's OCaml domain
-    skills (eio, effects, result, cmdliner, fuzz, memtrace, …).
+    skills (eio, effects, result, cmdliner, memtrace, …).
   - `ocaml-claude-skills/monopam/` — Thomas Gazagnaire's monopam monorepo
     skills (cram, mdx, git-commit, git-rewrite, ocaml-functors,
     interop-testing, perf, console, requests, …).
+  - `eli5/eli5/` — DreambigOu's ELI5: one skill that explains a topic, a
+    piece of code, or an error to a named audience (age, grade, job role,
+    family member), calibrating vocabulary, analogy, and length to it. The
+    only non-OCaml, non-workflow skill here — it shapes an explanation for a
+    reader rather than driving the work.
+
+    Vendored **whole** (`UPSTREAM_SUB := .`, `UPSTREAM_DIR := eli5`) because
+    the repo has no plugin directory — its skill sits at `skills/eli5/` — so
+    no subdir holds both the
+    skill and the MIT `LICENSE` that must travel with it.
+    `eli5-workspace/` is dropped via `VENDOR_EXCLUDE_eli5`: it is upstream's
+    own eval harness (a Python runner, its tests, a results log) for scoring
+    the skill against Claude — authoring infrastructure, not skill, and this
+    repo already has `evals/`.
+
+## Declared excludes
+
+`VENDOR_EXCLUDE_<name>` drops paths at vendor time; each is recorded in the
+lock's `exclude:` lines and honoured by the drift check. Excludes are
+**path-anchored** (rsync `/`-prefixed), so `skills/foo` drops only that
+directory, not every `foo` in the tree.
+
+`ocaml-claude-skills` drops `skills/monopam`,
+`skills/concurrent-claude`, and `skills/fork-package` via
+`VENDOR_EXCLUDE_ocaml-claude-skills`: all three document the monopam subtree
+workflow (sources.toml provenance, UPSTREAM.md, git-x commits), and this
+workspace vendors with unpac instead. Their unpac counterparts live in the
+fork as `skills/engineering/unpac` and `skills/engineering/fork-package`.
 
 ## Name collisions across sources
 

@@ -11,17 +11,29 @@ runtime overhead.
 
 ## Mode Axes Overview
 
-OxCaml has five independent mode axes:
+OxCaml's main mode axes (as of 5.2.0minus-38+):
 
 | Axis | Modes | Tracks |
 |------|-------|--------|
 | Locality | `local` / `global` | Stack vs heap allocation |
 | Uniqueness | `unique` / `aliased` | Single vs multiple references |
 | Linearity | `once` / `many` | Closure invocation count |
-| Portability | `portable` / `shareable` / `nonportable` | Cross-thread safety |
-| Contention | `contended` / `shared` / `uncontended` | Concurrent access |
+| Portability | `portable` / `corruptible` / `shareable` / `nonportable` | Cross-thread safety |
+| Contention | `uncontended` / `shared` / `corrupted` / `contended` | Concurrent access |
+| Visibility | `read_write` / `read` / `write` / `immutable` | Mutable-field access rights |
+| Statefulness | `stateless` / `reading` / `writing` / `stateful` | Closed-over mutable state |
 
 Each axis is independent - a value can be `local unique once` or `global aliased many`.
+(The compiler also has a user-facing `yielding`/`unyielding` axis, plus
+internal `forkable`/`staticity` axes, omitted here.)
+
+Portability/contention and visibility/statefulness are **diamonds**
+(since 5.2.0minus-37): `shared`/`corrupted` are incomparable between
+`uncontended` and `contended`, as are `read`/`write` between
+`read_write` and `immutable`. `corrupted` means other threads may
+write but not read; `write` visibility permits write-only access to
+mutable fields. Note `observing` was **renamed to `reading`** in
+5.2.0minus-36.
 
 ---
 
@@ -66,11 +78,19 @@ let y = (unique_val : t @ aliased)
 ### On Let Bindings
 
 ```ocaml
-(* Shorthand for common modes *)
+(* local_ is the ONLY legacy let-binding prefix *)
 let local_ x = (1, 2)       (* x is local *)
-let global_ y = (3, 4)      (* y is global - explicit *)
-let stack_ z = (5, 6)       (* z is stack-allocated local *)
+
+(* stack_ is an expression operator, not a let prefix *)
+let z = stack_ (5, 6)       (* z is stack-allocated local *)
+
+(* global is the default; there is no `let global_` form
+   (global_ exists only as a record-field modality prefix) *)
 ```
+
+**Removed in 5.2.0minus-39**: the legacy `unique_` and `once_`
+prefixes no longer parse. Use `(x @ unique)` in patterns and
+`(e : @ unique)` on expressions instead. `local_` is kept.
 
 ### On Record Fields (Modalities)
 
@@ -85,8 +105,8 @@ type t = {
 ```
 
 **Important**: For modalities, `@@ global` always implies `@@ aliased`. You cannot
-use `@@ global unique` together - this restriction ensures soundness of the
-upcoming borrowing feature. If you need a global field in a unique context,
+use `@@ global unique` together - this restriction ensures soundness of
+borrowing. If you need a global field in a unique context,
 use `@@ global aliased` explicitly.
 
 ---
@@ -100,8 +120,8 @@ Modes have a subtyping relationship. You can use a "stronger" mode where a
 Locality:    global ≤ local     (global values can be used as local)
 Uniqueness:  unique ≤ aliased   (unique values can be used as aliased)
 Linearity:   many ≤ once        (many closures can be used as once)
-Portability: portable ≤ shareable ≤ nonportable
-Contention:  uncontended ≤ shared ≤ contended
+Portability: portable ≤ shareable/corruptible ≤ nonportable  (diamond)
+Contention:  uncontended ≤ shared/corrupted ≤ contended      (diamond)
 ```
 
 ### Examples
@@ -329,9 +349,19 @@ let good (r @ unique) =
 
 ---
 
-## Portability and Contention (Three-Way Axes)
+## Portability and Contention (Diamond Axes)
 
-The portability and contention axes now have three values each:
+Since 5.2.0minus-37 the portability and contention axes are
+four-element diamonds (previously three-element chains):
+
+```
+contention:                portability:
+    contended                 nonportable
+        |                          |
+ shared | corrupted     shareable | corruptible
+        |                          |
+    uncontended                portable
+```
 
 ### Portability Axis
 
@@ -339,6 +369,7 @@ The portability and contention axes now have three values each:
 |------|---------|
 | `nonportable` | Functions capturing uncontended mutable state; cannot escape current thread |
 | `shareable` | Functions capturing shared state; may execute in parallel |
+| `corruptible` | Functions closing over only corrupted values |
 | `portable` | Functions capturing all values at contended; may execute concurrently |
 
 ### Contention Axis
@@ -346,36 +377,61 @@ The portability and contention axes now have three values each:
 | Mode | Meaning |
 |------|---------|
 | `uncontended` | Single-thread access; full read/write |
-| `shared` | Multi-thread access; synchronized sharing |
+| `shared` | Multi-thread access; synchronized sharing (read) |
+| `corrupted` | Other threads may write but not read |
 | `contended` | Multi-thread concurrent access |
+
+### Visibility and Statefulness (Diamond Axes)
+
+```
+visibility:                statefulness:
+   immutable                   stateful
+       |                           |
+  read | write            reading | writing
+       |                           |
+   read_write                  stateless
+```
+
+`write` visibility permits *write-only* access to mutable fields;
+`writing` closures may write but not read closed-over mutable state.
+
+```ocaml
+let mostly_const : int ref @ write -> unit = fun r ->
+  r := 0      (* allowed: write is permitted *)
+  (* let _ = !r in ... — would be a mode error *)
+```
 
 ### Mode Implications
 
-Certain modalities imply others for soundness:
+Certain modes imply others for soundness:
 
 - `@@ global` implies `@@ aliased` (for borrowing soundness)
 - `stateless` implies `portable`
-- `observing` implies `shareable`
+- `reading` implies `shareable` (`reading` was called `observing` before 5.2.0minus-36)
+- `writing` implies `corruptible`
+- `stateful` implies `nonportable`
 - `immutable` implies `contended`
 - `read` implies `shared`
+- `write` implies `corrupted`
+- `read_write` implies `uncontended`
+
+Applying a modality to a future mode takes the **meet**; applying to a
+past mode takes the **join** (see `_05-modes/reference.md` in the
+compiler docs).
 
 ---
 
 ## Borrowing (5.2.0minus-31+)
 
 The `borrow_` keyword is a prefix expression form (`borrow_ e`) that
-cooperates with the uniqueness analysis. It's the first piece of
-OxCaml's forthcoming borrow-checker exposed to users.
+cooperates with the uniqueness analysis — the first piece of OxCaml's
+borrow-checking exposed to users.
 
 ### Syntax
 
-`borrow_ e` parses as a prefix expression — **anywhere an expression
-is valid**. Per the PR (#5215): "Borrows now naturally fail with mode
-errors when used incorrectly rather than being artificially restricted
-by context checks." So parsing is permissive; the typechecker rejects
-uses that conflict with uniqueness.
-
-Positions where you actually want to use it:
+`borrow_ e` is valid in **exactly three positions**; anywhere else is
+a hard error ("The borrow_ operator must appear directly in a valid
+borrowing context"):
 
 ```ocaml
 (* 1. Function-argument position (most common) *)
@@ -386,6 +442,9 @@ let y = borrow_ r in ...
 
 (* 3. Match scrutinee *)
 match borrow_ r with _ -> ...
+
+(* ERROR: any other position, e.g. inside a tuple *)
+let pair = (borrow_ y, borrow_ y)   (* invalid borrowing context *)
 ```
 
 ### New Diagnostics
@@ -397,8 +456,8 @@ match borrow_ r with _ -> ...
   detected a conflict between a borrow and a unique use. Carries the
   region location, borrow occurrence, and a `cannot_force` reason.
 
-The PR also improved error reporting so that explicit borrows show
-"borrowed" in messages rather than the generic "used".
+Explicit borrows show "borrowed" in error messages rather than the
+generic "used".
 
 ### When to Use It
 
@@ -407,6 +466,14 @@ unique value transiently but you don't want to give up the unique
 reference. Borrowing is *not* a replacement for `@ unique` on
 parameters — it's complementary: borrowing lets a unique value survive
 a call that would otherwise consume it.
+
+Semantics (documented since 5.2.0minus-39 in
+`_07-uniqueness/borrow.md`): `borrow_ e` gives a temporary
+`aliased` + `local` view of a `unique` value; the original must be
+`many` and is unusable-as-unique within the implicit borrow region
+(the `let` body, the application, or the `match`). Since 5.4.0-ox2 the
+docs also cover interaction with stack allocation: stack-allocated
+(`exclave_`) values cannot escape a `borrow_` region.
 
 ```ocaml
 (* Callee reads through a unique ref transiently *)

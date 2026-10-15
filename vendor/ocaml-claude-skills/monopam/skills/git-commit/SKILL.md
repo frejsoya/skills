@@ -48,24 +48,25 @@ hack, say which hack and why.
 
 ## Body
 
-Skip it only when the subject genuinely says everything (a typo fix, a
-dependency bump with the version in the subject). Otherwise write at least a
-short paragraph.
+Most commits need no body, or one line: the subject and the diff already say
+why. Write a paragraph only where they do not, and stop as soon as they do.
 
 **No essays.** Length is not depth, and a twelve-paragraph message covering the
 journey, the rejected alternatives, and the philosophical implications is harder
 to use than five lines that state the why and stop.
 
-- A short paragraph (2-5 sentences) covers most commits. A bullet list for
-  genuine sub-changes. That is the whole body.
+- A short paragraph (2-5 sentences) is as long as a body that needs one gets.
+  A bullet list for genuine sub-changes. That is the whole body.
 - Prose quoting your reasoning at length ("I tried X but it didn't work because
   Y, then I considered Z...") belongs in a PR description or a design doc. The log
   is a *reference*, not a narrative.
+- Counts, mutation matrices, commands and readings go on the tracker row or in
+  the PR, never in the log.
 - "Additionally", "moreover", "it should also be noted that" are padding. Cut.
 - Optimise for the reviewer in 2030 scanning `git log --oneline | grep` who
   needs the answer in ten seconds.
 
-The exception is a genuinely complex change (a subtle algorithmic fix, a
+The rare exception is a genuinely complex change (a subtle algorithmic fix, a
 security boundary change, a protocol decision) where the body must carry real
 load. Even then: short summary paragraph, then evidence in code blocks, then the
 one or two non-obvious notes. Never a wall of text.

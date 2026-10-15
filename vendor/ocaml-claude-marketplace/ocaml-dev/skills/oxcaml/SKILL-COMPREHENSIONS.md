@@ -8,6 +8,10 @@ description: "OxCaml list and array comprehension syntax for concise collection 
 Comprehensions provide concise syntax for building lists and arrays, inspired by
 Python and Haskell.
 
+The extension is **Beta** maturity and not enabled by default: pass
+`-extension comprehensions` (or `-extension-universe beta`), e.g. via dune
+`(flags (:standard -extension comprehensions))`.
+
 ## Basic Syntax
 
 ### List Comprehensions
@@ -49,17 +53,12 @@ Python and Haskell.
 (* Returns int iarray *)
 ```
 
-### Unboxed/Untagged Array Comprehensions
+### No Unboxed Element Types
 
-Comprehensions work with unboxed and untagged arrays:
-
-```ocaml
-(* Unboxed float array comprehension *)
-[| #(Float.of_int x) for x = 1 to 10 |] : float# array
-
-(* Untagged int8 array comprehension *)
-[| #(Int8.of_int x) for x = 0 to 255 |] : int8# array
-```
+Unboxed types are **banned** in comprehensions: the body must have layout
+`value`, as must the element type of any array you iterate over. So
+`[| Float_u.of_float x for x in ... |]` is a type error — build `float# array`
+/ `int8# array` values with explicit loops instead.
 
 ---
 
@@ -109,14 +108,16 @@ Nested `for` clauses create cartesian product - inner re-evaluated each outer:
 (* [(1,1); (2,1); (2,2); (3,1); (3,2); (3,3)] *)
 ```
 
-### Parallel Iteration (`for ... and ...`)
+### Simultaneous Iteration (`for ... and ...`)
 
-Parallel `and` iterates in lockstep - all sources evaluated once upfront:
+`and` still produces the **Cartesian product** — the same elements as nested
+`for` — but all sources are evaluated once, upfront, and later iterators
+cannot reference earlier ones:
 
 ```ocaml
 [ (x, y) for x = 1 to 3 and y = 10 to 12 ]
-(* [(1,10); (2,11); (3,12)] *)
-(* min(3, 3) = 3 elements *)
+(* [(1,10); (1,11); (1,12); (2,10); (2,11); (2,12); (3,10); (3,11); (3,12)] *)
+(* 3 * 3 = 9 elements — NOT a zip; comprehensions cannot express zip *)
 
 (* Cannot depend on each other *)
 [ (x, y) for x = 1 to 3 and y = 1 to x ]  (* ERROR: x not in scope *)
@@ -126,8 +127,8 @@ Parallel `and` iterates in lockstep - all sources evaluated once upfront:
 
 | Aspect | `for ... for ...` | `for ... and ...` |
 |--------|-------------------|-------------------|
-| Result size | Product | Minimum |
-| Re-evaluation | Inner re-evaluated | All evaluated once |
+| Result size | Product | Product (same elements) |
+| Re-evaluation | Inner re-evaluated each outer step | All evaluated once upfront |
 | Dependencies | Inner can use outer | Independent |
 | Optimization | Standard | Fixed-size array opt |
 
@@ -204,17 +205,11 @@ let items = [|"a"; "b"; "c"; "d"|]
 (* [|(0,"a"); (1,"b"); (2,"c"); (3,"d")|] *)
 ```
 
-### Zip with Index
+### No Zip
 
-```ocaml
-let xs = [1; 2; 3]
-let ys = ["a"; "b"; "c"]
-[ (i, x, y)
-  for i = 0 to min (List.length xs) (List.length ys) - 1
-  and x in xs
-  and y in ys ]
-(* [(0,1,"a"); (1,2,"b"); (2,3,"c")] *)
-```
+Comprehensions **cannot zip**: `and` produces the Cartesian product, never
+lockstep pairing. To pair two lists element-wise use `List.combine` /
+`List.map2` (or index into arrays as above).
 
 ---
 
@@ -309,10 +304,9 @@ let filter_map f lst =
 
 ### Enumerate
 
-```ocaml
-let enumerate lst =
-  [ (i, x) for i = 0 to List.length lst - 1 and x in lst ]
-```
+Not expressible as a comprehension (`and` is a product, not a zip) — use
+`List.mapi (fun i x -> (i, x)) lst`, or index an array as in
+"Indexed Iteration" above.
 
 ### Cartesian Product
 
@@ -337,7 +331,8 @@ let take_while pred lst =
 
 ## Performance Tips
 
-1. **Prefer `and` over nested `for`** when iteration is parallel and size is fixed
+1. **Prefer `and` over nested `for`** when iterators are independent — sources
+   are evaluated once and array comprehensions can pre-allocate the exact size
 2. **Put restrictive `when` clauses early** to skip work
 3. **Array comprehensions** are generally faster than list (no cons overhead)
 4. **For very large results**, consider alternative approaches (iterators, sequences)
@@ -348,7 +343,9 @@ let take_while pred lst =
 
 - Cannot break out early (no `break` or `return`)
 - Partial patterns may raise exceptions
-- Local allocations in comprehensions follow normal rules
+- The result is always global (heap-allocated) — list comprehensions
+  build intermediates on the local stack internally, but cannot
+  produce a local list
 - Nested comprehensions can be memory-intensive
 
 See also: [SKILL.md](SKILL.md) for quick reference,

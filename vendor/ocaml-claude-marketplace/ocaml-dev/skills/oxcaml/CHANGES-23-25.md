@@ -29,7 +29,7 @@ Full support for packed arrays of small integers:
 (* New array types - tightly packed *)
 let bytes : int8# array = [| #0s; #1s; #255s |]      (* 1 byte/element *)
 let shorts : int16# array = [| #0S; #1S; #32767S |]  (* 2 bytes/element *)
-let ints : int# array = [| #0; #1; #42 |]            (* native word/element *)
+let ints : int# array = [| #0m; #1m; #42m |]         (* native word/element *)
 let chars : char# array = [| #'a'; #'b'; #'c' |]     (* 1 byte/element *)
 ```
 
@@ -58,12 +58,16 @@ Previously this was prohibited.
 
 ### AVX2 Gather Intrinsics (#5040)
 
-Gather operations for loading values from non-contiguous memory addresses:
+Gather operations for loading values from non-contiguous memory
+addresses. Named by lane width × index width (there are no float-typed
+gathers): `vec128_gather32_index32`, `vec128_gather32_index64`,
+`vec128_gather64_index32`, `vec128_gather64_index64`, plus `vec256_*`
+variants — C builtins `caml_avx2_vec128_gather32_index32` etc.
 
 ```ocaml
-(* Gather using index vector - loads arr[indices[0]], arr[indices[1]], etc. *)
-gather_int32x4 ~base ~indices ~scale ~mask
-gather_float64x2 ~base ~indices ~scale ~mask
+(* Actual argument shape *)
+vec128_gather32_index32 ~scale ~onto addr ~idx ~mask
+(* scale:int64#  onto:int32x4  addr  idx:int32x4  mask:int32x4 *)
 ```
 
 ### BMI/BMI2 Intrinsics (#5065)
