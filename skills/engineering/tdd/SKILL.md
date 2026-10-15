@@ -41,7 +41,7 @@ behavior the compiler and contracts don't already pin down.
 
 **Bad tests** are coupled to implementation. They mock internal collaborators, test values that aren't exported from the `.mli`, or verify through external means (like querying a database directly instead of using the interface). The warning sign: your test breaks when you refactor, but behavior hasn't changed. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.
 
-See [tests.md](tests.md) for examples, [property-testing.md](property-testing.md) for QCheck/Crowbar (often the better tool for pure functions), [contracts-gospel.md](contracts-gospel.md) for specifying & verifying invariants with Gospel, and [mocking.md](mocking.md) for mocking guidelines.
+See [tests.md](tests.md) for examples, [property-testing.md](property-testing.md) for QCheck/Alcobar (often the better tool for pure functions), [contracts-gospel.md](contracts-gospel.md) for specifying & verifying invariants with Gospel, and [mocking.md](mocking.md) for mocking guidelines.
 
 ## Anti-Pattern: Horizontal Slices
 

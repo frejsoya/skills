@@ -47,7 +47,7 @@ laws describe.
 - If you can't name a law, that's fine — write the example test. Not everything
   has a clean algebraic property.
 
-## QCheck vs. Crowbar — use both, they don't always overlap
+## QCheck vs. Alcobar — use both, they don't always overlap
 
 The two property tools have **different search strategies**, so they find
 different bugs:
@@ -55,19 +55,19 @@ different bugs:
 - **QCheck** — *random* generation + shrinking. Cheap to write, runs anywhere (no
   special build), great for laws over structured data you can describe with a
   generator. Reach for it by default in the red-green loop.
-- **Crowbar** — *coverage-guided* fuzzing (drives AFL via `afl-persistent`) **and**
-  can run as a plain QCheck-style property without a fuzzer. Because AFL mutates
-  toward new code paths, it excels at the inputs random generation rarely hits:
-  deep parser states, boundary conditions, crash/assert-safety on adversarial
-  bytes. Reach for it when the function eats untrusted input or has a gnarly state
-  space.
+- **Alcobar** (the house Crowbar fork) — *coverage-guided* fuzzing (drives AFL)
+  **and** runs as a plain QCheck-style property under `dune test`. Because AFL
+  mutates toward new code paths, it excels at the inputs random generation rarely
+  hits: deep parser states, boundary conditions, crash/assert-safety on
+  adversarial bytes. Reach for it when the function eats untrusted input or has a
+  gnarly state space.
 
-Rule of thumb: **QCheck for laws, Crowbar for crash-safety and edge discovery.**
+Rule of thumb: **QCheck for laws, Alcobar for crash-safety and edge discovery.**
 They're complementary, not redundant — a round-trip property is worth running
-under *both* (QCheck in CI for speed, Crowbar in a fuzzing session for depth).
+under *both* (QCheck in CI for speed, Alcobar in a fuzzing session for depth).
 
-For Crowbar setup, generators, and AFL wiring, see the vendored
-[`fuzz` skill](../../../vendor/ocaml-claude-marketplace/ocaml-dev/skills/fuzz/SKILL.md).
+For Alcobar setup, generators, layout, and AFL wiring, see the
+[`fuzz` skill](../fuzz/SKILL.md).
 
 ## Derive properties from a spec instead of writing them
 
@@ -76,4 +76,4 @@ these properties: annotate the `.mli` with a [Gospel](https://github.com/ocaml-g
 contract and let **Ortac/QCheck-STM** generate a model-based state-machine test
 from it. The contract becomes the single source of truth; the property tests are
 derived and stay in sync. See [contracts-gospel.md](contracts-gospel.md). Use this
-*alongside* hand-written QCheck/Crowbar for behaviour you don't (or can't) model.
+*alongside* hand-written QCheck/Alcobar for behaviour you don't (or can't) model.

@@ -33,7 +33,10 @@ trigger) — fix the description, not the case. `—` means no skill should fire
 | 22 | "Set up a new OCaml project with dune, opam, and CI." | project-setup (vendored) |
 | 23 | "Fuzz-test the parser for crashes on bad input." | fuzz (vendored) |
 | 24 | "What's the weather tomorrow?" | — |
+| 26 | "Lint this OCaml project before I open the PR." | merlint |
 | 25 | "Rename this variable." | — |
+| 28 | "Vendor this opam package and merge it into my project." | unpac |
+| 29 | "Publish my patched fork of this library under our own name." | fork-package |
 
 ## Known-hard cases (watch for mis-routes)
 

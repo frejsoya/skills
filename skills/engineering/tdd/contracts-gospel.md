@@ -85,7 +85,7 @@ This skill's correctness order becomes **types → specs → tests/proofs**:
   first; Gospel covers the residue, Alcotest/QCheck cover what you don't spec.
 - The `.mli`-first discipline pays double here: a contract is only as good as the
   interface it annotates.
-- Ortac/QCheck-STM and hand-written QCheck/Crowbar are **complementary** — derived
+- Ortac/QCheck-STM and hand-written QCheck/Alcobar are **complementary** — derived
   STM tests for the modelled behaviour, hand-written properties/examples for the
   rest.
 
