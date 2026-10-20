@@ -1,5 +1,5 @@
-# Skills repo: install/manage these skills for your agents, and vendor upstream
-# OCaml skills.
+# Skills repo: install/manage these skills for your agents, and vendor the
+# upstream skill sets they are composed from.
 #
 # Quick start:
 #   make install          # symlink every skill into your agent skills dir
@@ -24,14 +24,15 @@
 # Sources (see sources/README.md)
 # ---------------------------------------------------------------------------
 #
-# Every skill is external. They differ by edit policy:
-#   - skills/  = our DIVERGED FORK of mattpocock/skills (OCaml-adapted; we edit).
-#                Update by merging the `upstream` remote.  `make fork-status`.
-#   - vendor/  = VENDORED VERBATIM from upstream marketplaces (pinned, never
-#                hand-edited): avsm/ocaml-claude-marketplace (ocaml-dev) and
-#                gazagnaire.org/ocaml-claude-skills (monopam).
-#                `make vendor-update` / `vendor-diff`.
-# Provenance + locks for both live under sources/.
+# Two kinds of skill, split by edit policy:
+#   - vendor/  = VENDORED VERBATIM from an upstream (pinned, never hand-edited):
+#                mattpocock/skills (workflow), avsm/ocaml-claude-marketplace
+#                (ocaml-dev), gazagnaire.org/ocaml-claude-skills (monopam) and
+#                DreambigOu/ELI5.  `make vendor-update` / `vendor-diff`.
+#   - skills/  = ours: local skills, plus OVERRIDES -- local adaptations of an
+#                upstream skill that keep tracking it through
+#                sources/overrides/overrides.lock (three-way merged on update).
+# Provenance + locks live under sources/.
 
 INSTALL        := scripts/install-skills.sh
 EVAL           := scripts/skills-eval.sh
@@ -64,8 +65,8 @@ help:
 	@echo '    vars: EXECUTOR=mock|copilot-sdk  MODEL=<id>  TRIALS=<n>  SUITE=<skill>'
 	@echo
 	@echo 'Sources (see sources/README.md):'
-	@echo '  make fork-status     how far skills/ is behind mattpocock/skills upstream'
-	@echo '  make vendor-update   re-sync ALL vendored sets to latest, update locks'
+	@echo '  make vendor-update   re-sync ALL vendored sets to latest, update locks,'
+	@echo '                       merge upstream changes into skills/ overrides'
 	@echo '  make vendor-diff     show what each upstream changed vs our pinned copy'
 	@echo '  make vendor-status   print the pinned commit of each vendored set'
 	@echo '    per-vendor: make vendor-update-<name> etc., name in: $(VENDORS)'
@@ -145,10 +146,40 @@ check-all: integrity check links vendor-check
 # It is for skills an upstream ships that another source owns — recorded in
 # the lock and honoured by the drift check, so it stays a declared vendoring
 # decision rather than an undetectable hand-edit of vendor/.
-VENDORS := ocaml-claude-marketplace ocaml-claude-skills eli5
+#
+# VENDOR_LICENSE_<name> names the upstream's license file (relative to the
+# repo root) when it sits outside the vendored subdir; it is copied to
+# vendor/<name>/ so the license travels with the code, and recorded in the lock.
+VENDORS := mattpocock-skills ocaml-claude-marketplace ocaml-claude-skills eli5
+
+# Matt Pocock's engineering + productivity workflow skills (grilling, tdd,
+# triage, wayfinder, ...). This repo began as a fork of it; the git history
+# keeps that, the layout no longer does: it is vendored like every other set.
+#
+# Dropped at vendor time:
+#   - misc, deprecated, and the unfinished in-progress skills (loop-me,
+#     setup-ts-deep-modules, writing-*): not promoted upstream, TS-specific.
+#     chief-of-staff and claude-handoff ARE kept from in-progress.
+#   - ask-matt, setup-matt-pocock-skills: route to / configure upstream's own
+#     set; here the tracker and label context lives in AGENTS.md.
+#   - code-review: review-diff (skills/engineering) owns review here.
+#   - codebase-design diagnosing-bugs implement implement-spec prototype tdd
+#     to-spec to-tickets triage wayfinder: OCaml-adapted OVERRIDES living in
+#     skills/engineering/, tracking upstream via sources/overrides/overrides.lock.
+UPSTREAM_URL_mattpocock-skills := https://github.com/mattpocock/skills.git
+UPSTREAM_SUB_mattpocock-skills := skills
+VENDOR_LICENSE_mattpocock-skills := LICENSE
+VENDOR_EXCLUDE_mattpocock-skills := misc deprecated \
+  in-progress/loop-me in-progress/setup-ts-deep-modules in-progress/writing-beats \
+  in-progress/writing-fragments in-progress/writing-shape \
+  engineering/ask-matt engineering/setup-matt-pocock-skills engineering/code-review \
+  engineering/codebase-design engineering/diagnosing-bugs engineering/implement \
+  engineering/implement-spec engineering/prototype engineering/tdd engineering/to-spec \
+  engineering/to-tickets engineering/triage engineering/wayfinder
 
 UPSTREAM_URL_ocaml-claude-marketplace := https://github.com/avsm/ocaml-claude-marketplace.git
 UPSTREAM_SUB_ocaml-claude-marketplace := plugins/ocaml-dev
+VENDOR_LICENSE_ocaml-claude-marketplace := LICENSE
 # Crowbar fuzz skill dropped: the house fuzz library is alcobar, and the
 # Alcobar fuzz skill comes from ocaml-claude-skills. project-setup dropped:
 # init-ocaml owns new-package setup (house layout). Tool-conflict drops
@@ -159,6 +190,7 @@ VENDOR_EXCLUDE_ocaml-claude-marketplace := skills/fuzz skills/project-setup skil
 
 UPSTREAM_URL_ocaml-claude-skills := https://tangled.org/gazagnaire.org/ocaml-claude-skills
 UPSTREAM_SUB_ocaml-claude-skills := plugins/monopam
+VENDOR_LICENSE_ocaml-claude-skills := LICENSE.md
 # monopam-tool-specific skills dropped: this workspace vendors with unpac, and
 # the unpac counterparts live in skills/engineering/ (unpac, fork-package).
 # ocaml-protocols and init-ocaml dropped here because they are local overrides
@@ -188,25 +220,12 @@ vdirname = $(or $(UPSTREAM_DIR_$(1)),$(notdir $(UPSTREAM_SUB_$(1))))
 vdir     = vendor/$(1)/$(call vdirname,$(1))
 vexcl    = $(foreach e,$(VENDOR_EXCLUDE_$(1)),--exclude '/$(e)')
 
-FORK_LOCK      := sources/mattpocock-skills.lock
 REF            ?= origin/main
 
 # rsync flags: mirror upstream subdir, drop VCS noise.
 RSYNC_FLAGS := -a --delete --exclude '.git'
 
-.PHONY: vendor-update vendor-diff vendor-status fork-status waza waza-calibrate
-
-fork-status:
-	@git fetch --quiet upstream 2>/dev/null || true; \
-	 fp=$$(awk '/^fork-point:/{print $$2}' "$(FORK_LOCK)" 2>/dev/null); \
-	 latest=$$(git rev-parse upstream/main 2>/dev/null); \
-	 echo "skills/ is a diverged fork of mattpocock/skills."; \
-	 echo "  fork-point: $$fp"; echo "  upstream main: $$latest"; \
-	 if [ -n "$$fp" ] && [ "$$fp" != "$$latest" ]; then \
-	   n=$$(git rev-list --count "$$fp"..upstream/main 2>/dev/null); \
-	   echo "  upstream is $$n commit(s) ahead of our fork-point."; \
-	   echo "  pull with: git merge upstream/main  (then resolve + update $(FORK_LOCK))"; \
-	 else echo "  up to date with upstream main."; fi
+.PHONY: vendor-update vendor-diff vendor-status waza waza-calibrate
 
 vendor-update: $(addprefix vendor-update-,$(VENDORS))
 vendor-diff:   $(addprefix vendor-diff-,$(VENDORS))
@@ -234,6 +253,11 @@ vendor-update-%: _vendor-fetch-%
 	 for e in $(VENDOR_EXCLUDE_$*); do echo "exclude:  $$e" >> "sources/$*.lock"; done; \
 	 echo ">> vendored $(call vdir,$*) @ $$sha"; \
 	 echo ">> wrote sources/$*.lock"
+	@if [ -n "$(VENDOR_LICENSE_$*)" ]; then \
+	   cp ".vendor-cache/$*/$(VENDOR_LICENSE_$*)" "vendor/$*/$(notdir $(VENDOR_LICENSE_$*))"; \
+	   echo "license:  $(VENDOR_LICENSE_$*)" >> "sources/$*.lock"; \
+	   echo ">> copied upstream $(VENDOR_LICENSE_$*) to vendor/$*/"; \
+	 fi
 	@if awk -v v="$*" '$$2 == v { f = 1 } END { exit !f }' sources/overrides/overrides.lock; then \
 	   scripts/merge-overrides.sh "$*" "$(UPSTREAM_SUB_$*)"; \
 	 fi

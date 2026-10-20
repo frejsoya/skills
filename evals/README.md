@@ -10,7 +10,7 @@ LLM layers before a release or after a big edit.
 - **`make integrity`** — repo invariants (errors fail CI): `plugin.json` entries
   resolve; engineering/productivity skills are in `plugin.json` + linked in
   README; bucket READMEs list every skill; `trigger-cases.md` expected skills
-  exist; skill names are unique across fork + vendored.
+  exist; skill names are unique across local + vendored.
 - **`make check`** (lint) — structural + hygiene. **Errors**: missing/malformed
   frontmatter, `name` ≠ directory. **Warnings**: no "Use when …" trigger,
   description > 1024 chars / not capitalized / no period / first-person, unknown
@@ -73,7 +73,7 @@ deterministic layer can't judge (prose quality, contradictions, idiom).
 
 We run [microsoft/waza](https://github.com/microsoft/waza) suites that *execute*
 the skills and grade **routing** (does the right skill fire for a prompt?). Each
-engineering forked skill has a suite under `evals/<skill>/`:
+engineering skill (local or vendored) has a suite under `evals/<skill>/`:
 
 ```
 evals/<skill>/
