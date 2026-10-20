@@ -3,6 +3,11 @@ name: triage
 description: Move issues and external PRs through a state machine of triage roles, categorise, verify, grill if needed, and write agent-ready briefs.
 disable-model-invocation: true
 ---
+<!-- override: adapted from mattpocock/skills skills/engineering/triage (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
+Local changes (keep these when merging upstream):
+- The label mapping comes from `AGENTS.md`/`CLAUDE.md` or `docs/agents/triage-labels.md`; no `/setup-matt-pocock-skills`.
+- AGENT-BRIEF.md: the examples use `lib/*.ml` paths, not `src/*.ts`.
+-->
 
 # Triage
 

@@ -12,3 +12,4 @@ exclude:  skills/progress
 exclude:  skills/logs
 exclude:  skills/memtrace
 exclude:  skills/tutorials
+license:  LICENSE

@@ -2,6 +2,13 @@
 name: diagnosing-bugs
 description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow.
 ---
+<!-- override: adapted from mattpocock/skills skills/engineering/diagnosing-bugs (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
+Local changes (keep these when merging upstream):
+- Read `docs/agents/commands.md` for the build/test/format commands; dune defaults otherwise.
+- Feedback-loop menu in OCaml terms: Alcotest/OUnit under `dune runtest`, `dune exec`, ppx_expect/cram, and a `utop` step.
+- Determinism via Eio capabilities (`Eio_mock.Clock`, `Random.State.t`); a "Turn on backtraces" (`OCAMLRUNPARAM=b`) paragraph.
+- Probe tooling is utop/ocamldebug and Fmt/Logs; the perf branch names landmarks, perf/callgrind and `Gc.stat`, and the allocation hint.
+-->
 
 # Diagnosing Bugs
 

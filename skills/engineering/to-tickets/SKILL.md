@@ -3,6 +3,10 @@ name: to-tickets
 description: Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, published to the configured tracker (edges as text in one file per ticket locally, or native blocking links on a real tracker).
 disable-model-invocation: true
 ---
+<!-- override: adapted from mattpocock/skills skills/engineering/to-tickets (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
+Local changes (keep these when merging upstream):
+- The issue tracker and triage label vocabulary come from `AGENTS.md`/`CLAUDE.md`; no `/setup-matt-pocock-skills` (also in the publish step).
+-->
 
 # To Tickets
 

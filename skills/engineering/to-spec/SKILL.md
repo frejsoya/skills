@@ -3,6 +3,10 @@ name: to-spec
 description: "Turn the current conversation into a spec and publish it to the project issue tracker: no interview, just synthesis of what you've already discussed."
 disable-model-invocation: true
 ---
+<!-- override: adapted from mattpocock/skills skills/engineering/to-spec (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
+Local changes (keep these when merging upstream):
+- The issue tracker and triage label vocabulary come from `AGENTS.md`/`CLAUDE.md`; no `/setup-matt-pocock-skills`.
+-->
 
 This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.
 

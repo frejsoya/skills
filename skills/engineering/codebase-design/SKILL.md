@@ -2,6 +2,13 @@
 name: codebase-design
 description: Shared vocabulary for designing deep modules. Use when the user wants to design or improve a module's interface, find deepening opportunities, decide where a seam goes, make code more testable or AI-navigable, or when another skill needs the deep-module vocabulary.
 ---
+<!-- override: adapted from mattpocock/skills skills/engineering/codebase-design (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
+Local changes (keep these when merging upstream):
+- "Module" vocabulary maps to OCaml constructs (module, functor, library; not class/package), with an "In OCaml" table (compilation unit, `.mli`, functor seams, adapters) and the tells of a shallow module.
+- Testability examples are OCaml; adds "make illegal states unrepresentable" and Gospel contracts for invariants (points at the `tdd` skill's contracts-gospel.md).
+- Rejected framing talks about the `.mli` signature instead of the TypeScript `interface` keyword.
+- DESIGN-IT-TWICE.md: the sub-agent output names the `.mli` as the interface.
+-->
 
 # Codebase Design
 

@@ -3,6 +3,11 @@ name: implement-spec
 description: "Implement the result of /to-spec and /to-tickets in code."
 disable-model-invocation: true
 ---
+<!-- override: adapted from mattpocock/skills skills/engineering/implement-spec (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
+Local changes (keep these when merging upstream):
+- The issue tracker comes from `AGENTS.md`/`CLAUDE.md`; no `/setup-matt-pocock-skills`.
+- Close out with `review-diff`, not `code-review` (which is not vendored here).
+-->
 
 You have been provided a spec. This spec should have tickets associated with it, describing how to implement the spec.
 

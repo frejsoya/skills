@@ -1,8 +1,29 @@
-upstream:   https://github.com/mattpocock/skills.git
-remote:     upstream
-policy:     forked & diverged (OCaml/FP adaptation)
-location:   skills/
-update:     git fetch upstream && git merge upstream/main
-fork-point: 49dd158d1076134a641b33efb035946536778336
-date:       2026-10-09 11:56:49 +0100
-subject:    wizard: template fixes (#1220, #1142, #1081, #1041, #1003) (#1237)
+upstream: https://github.com/mattpocock/skills.git
+subdir:   skills
+policy:   vendored verbatim (pinned; never hand-edited)
+location: vendor/mattpocock-skills/skills/
+update:   make vendor-update
+commit:   49dd158d1076134a641b33efb035946536778336
+date:     2026-10-09 11:56:49 +0100
+subject:  wizard: template fixes (#1220, #1142, #1081, #1041, #1003) (#1237)
+exclude:  misc
+exclude:  deprecated
+exclude:  in-progress/loop-me
+exclude:  in-progress/setup-ts-deep-modules
+exclude:  in-progress/writing-beats
+exclude:  in-progress/writing-fragments
+exclude:  in-progress/writing-shape
+exclude:  engineering/ask-matt
+exclude:  engineering/setup-matt-pocock-skills
+exclude:  engineering/code-review
+exclude:  engineering/codebase-design
+exclude:  engineering/diagnosing-bugs
+exclude:  engineering/implement
+exclude:  engineering/implement-spec
+exclude:  engineering/prototype
+exclude:  engineering/tdd
+exclude:  engineering/to-spec
+exclude:  engineering/to-tickets
+exclude:  engineering/triage
+exclude:  engineering/wayfinder
+license:  LICENSE

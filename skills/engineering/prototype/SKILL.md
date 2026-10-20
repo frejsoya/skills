@@ -2,6 +2,12 @@
 name: prototype
 description: Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like.
 ---
+<!-- override: adapted from mattpocock/skills skills/engineering/prototype (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
+Local changes (keep these when merging upstream):
+- SKILL.md: the logic branch is a terminal app (a Dream + htmx page when a non-developer must drive it); run commands come from `docs/agents/commands.md` / `dune exec`.
+- LOGIC.md: rewritten around a pure OCaml module (variant reducer or state machine, abstract `type t`) driven by a Fmt-rendered TUI, with the shareable HTML demo as a Dream + htmx variant over the same module.
+- UI.md: Dream + htmx stack (eml/dream-html templates, `?variant=` via `Dream.query`, htmx swaps, a `PROTOTYPE` env gate) instead of React and a framework router.
+-->
 
 # Prototype
 

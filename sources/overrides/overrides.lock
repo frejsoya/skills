@@ -1,11 +1,23 @@
 # Local overrides of vendored skills that keep tracking their upstream.
 #
-# Each override is a copy of an upstream skill file with local edits. On
+# Each override is a copy of an upstream skill directory with local edits. On
 # `make vendor-update-<vendor>`, scripts/merge-overrides.sh three-way merges
-# the upstream changes since <base> into the override and advances <base>.
-# <base> is informational: the base file is kept at sources/overrides/<skill>.md.
-# The vendored copy itself stays excluded (VENDOR_EXCLUDE_<vendor>).
+# every file upstream changed since <base> into the override and advances
+# <base>. <base> is informational: the base itself is kept as a snapshot of the
+# upstream directory under sources/overrides/<skill>/. The vendored copy stays
+# excluded (VENDOR_EXCLUDE_<vendor>). Each override's SKILL.md opens with an
+# `<!-- override: ... -->` comment listing the local changes to keep.
 #
-# override                           vendor               upstream file (in subdir)        base
-skills/engineering/ocaml-protocols   ocaml-claude-skills  skills/ocaml-protocols/SKILL.md  c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460
-skills/engineering/init-ocaml        ocaml-claude-skills  skills/init-ocaml/SKILL.md       c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460
+# override                            vendor                   upstream dir (in subdir)       base
+skills/engineering/codebase-design    mattpocock-skills        engineering/codebase-design    49dd158d1076134a641b33efb035946536778336
+skills/engineering/diagnosing-bugs    mattpocock-skills        engineering/diagnosing-bugs    49dd158d1076134a641b33efb035946536778336
+skills/engineering/implement          mattpocock-skills        engineering/implement          49dd158d1076134a641b33efb035946536778336
+skills/engineering/implement-spec     mattpocock-skills        engineering/implement-spec     49dd158d1076134a641b33efb035946536778336
+skills/engineering/prototype          mattpocock-skills        engineering/prototype          49dd158d1076134a641b33efb035946536778336
+skills/engineering/tdd                mattpocock-skills        engineering/tdd                49dd158d1076134a641b33efb035946536778336
+skills/engineering/to-spec            mattpocock-skills        engineering/to-spec            49dd158d1076134a641b33efb035946536778336
+skills/engineering/to-tickets         mattpocock-skills        engineering/to-tickets         49dd158d1076134a641b33efb035946536778336
+skills/engineering/triage             mattpocock-skills        engineering/triage             49dd158d1076134a641b33efb035946536778336
+skills/engineering/wayfinder          mattpocock-skills        engineering/wayfinder          49dd158d1076134a641b33efb035946536778336
+skills/engineering/ocaml-protocols    ocaml-claude-skills      skills/ocaml-protocols         c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460
+skills/engineering/init-ocaml         ocaml-claude-skills      skills/init-ocaml              c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460

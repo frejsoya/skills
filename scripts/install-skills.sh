@@ -46,7 +46,7 @@ discover_raw() {
 }
 
 # The install surface is flat (one symlink per skill name), so when sources
-# overlap the first in discover order wins: fork skills, then vendors sorted.
+# overlap the first in discover order wins: local skills, then vendors sorted.
 discover() { discover_raw | awk -F/ '!seen[$NF]++'; }
 dupes()    { discover_raw | awk -F/ 'seen[$NF]++'; }
 

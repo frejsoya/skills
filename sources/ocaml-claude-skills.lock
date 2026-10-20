@@ -12,3 +12,4 @@ exclude:  skills/fork-package
 exclude:  skills/ocaml-protocols
 exclude:  skills/init-ocaml
 exclude:  skills/requests
+license:  LICENSE.md

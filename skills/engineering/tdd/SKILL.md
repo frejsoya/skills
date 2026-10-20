@@ -2,6 +2,14 @@
 name: tdd
 description: Types-first test-driven development for OCaml. Design the .mli and make illegal states unrepresentable first, then drive the residual behavior red → green at agreed seams (Alcotest examples or QCheck properties). Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration/property tests, or asks for test-first development.
 ---
+<!-- override: adapted from mattpocock/skills skills/engineering/tdd (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
+Local changes (keep these when merging upstream):
+- Types-first preamble: design the `.mli`, make illegal states unrepresentable, Gospel contracts (contracts-gospel.md, local file), then TDD only the residual behavior.
+- Keeps upstream's earlier layout (Philosophy / Horizontal slices / Workflow / Checklist per cycle); upstream has since condensed it into "What a good test is / Anti-patterns / Rules of the loop". Expect structural conflicts: take upstream's structure and re-apply the OCaml material onto it.
+- Seams are `.mli` or functor signatures; the planning checklist adds the `.mli` draft, the error convention and a `codebase-design` check; refactoring defers to `review-diff`, not `code-review`.
+- Property testing (property-testing.md, local file) as an alternative RED step for pure functions.
+- tests.md and mocking.md: Alcotest examples, an error-convention section (`result`/`option` vs exceptions), and mocking via functions, functors and Eio capabilities instead of a mock library.
+-->
 
 # Test-Driven Development
 

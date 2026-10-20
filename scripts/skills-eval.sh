@@ -15,16 +15,16 @@
 #   skills-eval.sh vendor-check # vendored locks well-formed + no drift
 #   skills-eval.sh all          # integrity + lint + links + vendor-check + metrics
 #
-# Lint/hygiene apply to the FORKED skills (skills/ — our diverged copy of
-# mattpocock/skills that we edit). VENDORED skills (vendor/, verbatim from
-# upstream marketplaces) are measured in metrics but never fail lint — fixes
-# go upstream. See sources/.
+# Lint/hygiene apply to the LOCAL skills (skills/ — ours: local skills and
+# overrides of upstream ones). VENDORED skills (vendor/, verbatim from an
+# upstream, pinned) are measured in metrics but never fail lint — fixes go
+# upstream. See sources/.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CMD="${1:-help}"
 
-fork()     { find "$ROOT/skills"  -iname 'skill.md' -not -path '*/deprecated/*' -exec dirname {} \; 2>/dev/null | sort; }
+local_skills() { find "$ROOT/skills"  -iname 'skill.md' -not -path '*/deprecated/*' -exec dirname {} \; 2>/dev/null | sort; }
 vendored() { [ -d "$ROOT/vendor" ] && find "$ROOT/vendor" -iname 'skill.md' -exec dirname {} \; 2>/dev/null | sort; }
 
 skillmd() { ls "$1"/SKILL.md "$1"/skill.md 2>/dev/null | head -1; }
@@ -137,7 +137,7 @@ integrity() {
         [ "$in_plugin" = n ] || err "$base (personal): must NOT be in plugin.json"
         [ "$in_readme" = n ] || warn "$base (personal): should not be promoted in README.md";;
     esac
-  done < <(fork)
+  done < <(local_skills)
 
   # 3. each bucket has a README listing every skill in it (CLAUDE.md)
   echo "$(dim "• bucket READMEs")"
@@ -146,7 +146,7 @@ integrity() {
     local breadme="$bucketdir/README.md"
     if [ ! -f "$breadme" ]; then err "$(basename "$bucketdir")/: no bucket README.md"; continue; fi
     grep -qE "\(\./$base/SKILL\.md\)" "$breadme" || warn "$base: not listed in $(basename "$bucketdir")/README.md"
-  done < <(fork)
+  done < <(local_skills)
 
   # 4. eval-set integrity: every expected skill in trigger-cases exists
   echo "$(dim "• eval-set references")"
@@ -167,7 +167,7 @@ integrity() {
     local covered total=0 cov=0 expset; expset="$(grep -E '^\| *[0-9]+ *\|' "$tc" | awk -F'|' '{print $4}' | awk '{print $1}' | sort -u)"
     while IFS= read -r d; do [ -z "$d" ] && continue
       total=$((total+1)); printf '%s\n' "$expset" | grep -qx "$(basename "$d")" && cov=$((cov+1))
-    done < <(fork; vendored)
+    done < <(local_skills; vendored)
     echo "  $(dim "$cov/$total skills have a positive routing case")"
     [ "$cov" -lt "$total" ] && warn "routing-eval covers $cov/$total skills — add trigger-cases for the rest"
   fi
@@ -175,13 +175,13 @@ integrity() {
   # 5. name uniqueness across the install surface. Within one source a
   #    duplicate is an error (would clobber on install). Across sources it's
   #    expected when upstreams overlap — install keeps the first in discover
-  #    order (fork, then vendors sorted) and skips the rest — so just surface
+  #    order (local, then vendors sorted) and skips the rest — so just surface
   #    which copy wins.
-  echo "$(dim "• name uniqueness (fork + vendored)")"
-  local all dup paths n_src; all="$(mktemp)"; { fork; vendored; } > "$all"
+  echo "$(dim "• name uniqueness (local + vendored)")"
+  local all dup paths n_src; all="$(mktemp)"; { local_skills; vendored; } > "$all"
   while IFS= read -r dup; do [ -z "$dup" ] && continue
     paths="$(grep -E "/$dup\$" "$all")"
-    n_src="$(echo "$paths" | sed -E "s#^$ROOT/skills/.*#fork#; s#^$ROOT/vendor/([^/]+)/.*#\1#" | sort -u | wc -l | tr -d ' ')"
+    n_src="$(echo "$paths" | sed -E "s#^$ROOT/skills/.*#local#; s#^$ROOT/vendor/([^/]+)/.*#\1#" | sort -u | wc -l | tr -d ' ')"
     if [ "$n_src" -gt 1 ]; then
       warn "duplicate skill name '$dup' across sources — install keeps $(echo "$paths" | head -1 | sed "s#^$ROOT/##")"
     else
@@ -191,16 +191,20 @@ integrity() {
   rm -f "$all"
 
   # 6. overrides of vendored skills (sources/overrides/overrides.lock): each resolves,
-  #    carries its attribution comment, and has no unresolved merge conflict.
+  #    names a vendor in VENDORS, carries its attribution comment, has a base
+  #    snapshot, and has no unresolved merge conflict in any file.
   echo "$(dim "• vendored-skill overrides")"
-  local odir ofile
-  while read -r odir _ _ _; do
+  local odir ovendor ofile osnap
+  while read -r odir ovendor _ _; do
     case "$odir" in ''|'#'*) continue;; esac
-    ofile="$ROOT/$odir/SKILL.md"
+    ofile="$ROOT/$odir/SKILL.md"; osnap="$ROOT/sources/overrides/$(basename "$odir")"
     if [ ! -f "$ofile" ]; then err "override '$odir' in overrides.lock has no SKILL.md"; continue; fi
+    [ -f "$ROOT/sources/$ovendor.lock" ] || err "$odir: tracks vendor '$ovendor' which has no sources/$ovendor.lock"
     grep -q '^<!-- override:' "$ofile" || err "$odir: missing '<!-- override:' attribution comment"
-    [ -f "$ROOT/sources/overrides/$(basename "$odir").md" ] || err "$odir: missing base snapshot sources/overrides/$(basename "$odir").md"
-    grep -qE '^(<{7}|\|{7}|={7}|>{7})( |$)' "$ofile" && err "$odir: unresolved merge conflict markers"
+    [ -f "$osnap/SKILL.md" ] || err "$odir: missing base snapshot sources/overrides/$(basename "$odir")/"
+    while IFS= read -r f; do [ -z "$f" ] && continue
+      err "${f#"$ROOT"/}: unresolved merge conflict markers"
+    done < <(grep -rlE '^(<{7}|\|{7}|={7}|>{7})( |$)' "$ROOT/$odir" 2>/dev/null)
   done < "$ROOT/sources/overrides/overrides.lock"
 
   echo
@@ -209,7 +213,7 @@ integrity() {
 }
 
 lint() {
-  echo "$(green "lint") — structural + hygiene (forked skills in skills/)"
+  echo "$(green "lint") — structural + hygiene (local skills in skills/)"
   local e0=$ERRORS w0=$WARNS
   while IFS= read -r d; do [ -z "$d" ] && continue
     local md name desc base; md="$(skillmd "$d")"; base="$(basename "$d")"
@@ -253,7 +257,7 @@ lint() {
       ocaml_code "$omd" | grep -nE 'Obj\.magic|Printf\.|open[[:space:]]+Lwt' \
         | while IFS= read -r hit; do warn "$base: OCaml anti-pattern in $(basename "$omd") code: $hit"; done
     done
-  done < <(fork)
+  done < <(local_skills)
   # trigger-overlap heuristic (warn): descriptions sharing many significant words
   # route ambiguously. O(n^2) over a small set.
   echo "$(dim "• trigger overlap")"
@@ -264,7 +268,7 @@ lint() {
         | grep -vE '^(skill|skills|using|which|where|their|other|these|those|while|about|should|would|could|when|user|wants|mentions)$' \
         | sort -u | tr '\n' ' ')"
     echo "$b|$w" >> "$tmp"
-  done < <(fork)
+  done < <(local_skills)
   awk -F'|' '{names[NR]=$1; words[NR]=$2} END{
     for(i=1;i<=NR;i++)for(j=i+1;j<=NR;j++){
       n=split(words[i],a," "); shared=0
@@ -280,7 +284,8 @@ lint() {
 links() {
   echo "$(green "links") — markdown link & file hygiene"
   local errs=0
-  # per-file link/anchor/depth/exec checks (our docs, not vendored)
+  # per-file link/anchor/depth/exec checks (our docs: not vendored, and not
+  # the upstream base snapshots under sources/overrides/<skill>/)
   while IFS= read -r f; do
     while IFS= read -r line; do [ -z "$line" ] && continue
       local kind detail; kind="$(echo "$line" | awk '{print $1,$2}')"; detail="${line#* * }"
@@ -291,13 +296,13 @@ links() {
         WARN\ nonexec*) warn "${f#"$ROOT"/}: referenced script not executable -> $detail";;
       esac
     done < <(file_link_problems "$f")
-  done < <(find "$ROOT/skills" "$ROOT/evals" "$ROOT/sources" -name '*.md' -not -path '*/deprecated/*' 2>/dev/null; ls "$ROOT"/*.md 2>/dev/null)
-  # orphan supporting docs (fork skills only)
+  done < <(find "$ROOT/skills" "$ROOT/evals" "$ROOT/sources" -name '*.md' -not -path '*/deprecated/*' -not -path "$ROOT/sources/overrides/*/*" 2>/dev/null; ls "$ROOT"/*.md 2>/dev/null)
+  # orphan supporting docs (local skills only)
   while IFS= read -r d; do [ -z "$d" ] && continue
     while IFS= read -r line; do [ -z "$line" ] && continue
       warn "orphan supporting doc: ${line#WARN orphan }"
     done < <(orphan_docs "$d")
-  done < <(fork)
+  done < <(local_skills)
   echo "links: $(red "$errs error(s)"), see warnings above"
   [ "$errs" -gt 0 ] && return 1 || return 0
 }
@@ -307,7 +312,7 @@ metrics() {
   echo
   echo "| skill | src | SKILL lines | files | ~tokens | code blks | desc len | trigger |"
   echo "|---|---|--:|--:|--:|--:|--:|:--:|"
-  local total=0 fork_n=0 vend_n=0 no_trig=0 big=0 tok_total=0 heavy=0
+  local total=0 local_n=0 vend_n=0 no_trig=0 big=0 tok_total=0 heavy=0
   emit() {
     local d="$1" src="$2" md name desc lines files chars tok blks dlen trig
     md="$(skillmd "$d")"; [ -z "$md" ] && return
@@ -324,10 +329,10 @@ metrics() {
     printf '| %s | %s | %s | %s | %s | %s | %s | %s |\n' "$name" "$src" "$lines" "$files" "$tok" "$blks" "$dlen" "$trig"
     total=$((total+1))
   }
-  while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" fork; fork_n=$((fork_n+1)); done < <(fork)
+  while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" local; local_n=$((local_n+1)); done < <(local_skills)
   while IFS= read -r d; do [ -z "$d" ] && continue; emit "$d" vend; vend_n=$((vend_n+1)); done < <(vendored)
   echo
-  echo "**Totals**: $total skills ($fork_n forked from mattpocock, $vend_n vendored) · ~$tok_total tokens total · $no_trig missing a trigger phrase · $big over 500 lines · $heavy over ~5k tokens."
+  echo "**Totals**: $total skills ($local_n local, $vend_n vendored) · ~$tok_total tokens total · $no_trig missing a trigger phrase · $big over 500 lines · $heavy over ~5k tokens."
 }
 
 # Tier 4 #14 — syntax-check ocaml code blocks (opt-in; needs a toolchain).
@@ -364,36 +369,35 @@ check_ocaml() {
         fi
       done < "$omd"
     done
-  done < <(fork)
+  done < <(local_skills)
   rm -rf "$tmp"
   echo "check-ocaml: $(green "$CHK_OK ok"), $(red "$CHK_FAIL parse error(s)"), $CHK_SKIP fragment(s) skipped"
   [ "$CHK_FAIL" -gt 0 ] && return 1 || return 0
 }
 
 # Tier 5 — vendoring integrity: locks well-formed + vendored trees not
-# hand-edited. Every sources/*.lock except the fork lock describes a vendored
-# set pinned at vendor/<name>/<basename of subdir>/.
+# hand-edited. Every sources/*.lock describes a vendored set pinned at the
+# directory its location: line records (vendor/<name>/<basename of subdir>/).
 vendor_check() {
   echo "$(green "vendor-check") — lock well-formedness + drift"
   local e0=$ERRORS w0=$WARNS
-  local fl="$ROOT/sources/mattpocock-skills.lock"
   # 1. locks have required fields
   echo "$(dim "• lock files")"
-  [ -f "$fl" ] || err "missing sources/mattpocock-skills.lock"
-  [ -f "$fl" ] && for f in upstream policy fork-point; do grep -q "^$f:" "$fl" || err "mattpocock lock missing '$f:'"; done
-  local vl name found=0
+  local vl name lic found=0
   for vl in "$ROOT"/sources/*.lock; do
-    [ -f "$vl" ] || continue; [ "$vl" = "$fl" ] && continue
+    [ -f "$vl" ] || continue
     found=1; name="$(basename "$vl" .lock)"
     for f in upstream subdir commit; do grep -q "^$f:" "$vl" || err "$name lock missing '$f:'"; done
     [ -d "$ROOT/vendor/$name" ] || err "$name lock has no vendor/$name/ tree"
+    lic="$(awk '/^license:/{print $2}' "$vl")"
+    [ -z "$lic" ] || [ -f "$ROOT/vendor/$name/$(basename "$lic")" ] || err "$name lock names license '$lic' but vendor/$name/$(basename "$lic") is missing"
   done
   [ "$found" -eq 1 ] || err "no vendor lock files under sources/"
   # 2. drift: does each vendor/ tree still match its pinned commit? (needs cache)
   echo "$(dim "• drift (vendored trees vs pinned commits)")"
   local cache sub sha vdir drift
   for vl in "$ROOT"/sources/*.lock; do
-    [ -f "$vl" ] || continue; [ "$vl" = "$fl" ] && continue
+    [ -f "$vl" ] || continue
     name="$(basename "$vl" .lock)"; cache="$ROOT/.vendor-cache/$name"
     sub="$(awk '/^subdir:/{print $2}' "$vl" 2>/dev/null)"
     sha="$(awk '/^commit:/{print $2}' "$vl" 2>/dev/null)"
@@ -411,6 +415,10 @@ vendor_check() {
       drift="$(mktemp)"
       rsync -rcn --delete --itemize-changes --exclude='.git' "${xargs_[@]}" \
         "$cache/$sub/" "$vdir/" >"$drift" 2>&1
+      lic="$(awk '/^license:/{print $2}' "$vl")"
+      if [ -n "$lic" ] && ! cmp -s "$cache/$lic" "$ROOT/vendor/$name/$(basename "$lic")"; then
+        echo "license $(basename "$lic") differs from upstream $lic" >> "$drift"
+      fi
       if [ ! -s "$drift" ]; then
         echo "  $(green "✓") $name matches pinned $sha"
       else
