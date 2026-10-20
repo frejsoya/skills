@@ -67,7 +67,7 @@ They're complementary, not redundant — a round-trip property is worth running
 under *both* (QCheck in CI for speed, Alcobar in a fuzzing session for depth).
 
 For Alcobar setup, generators, layout, and AFL wiring, see the
-[`fuzz` skill](../fuzz/SKILL.md).
+the `fuzz` skill.
 
 ## Derive properties from a spec instead of writing them
 
