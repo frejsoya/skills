@@ -38,7 +38,7 @@ is noise ("width padding changed"), tighten the driver.
 
 ## Layout
 
-All cram tests in a package live under `test/cram/`, one directory per test.
+All cram tests in a package live under `<package>/test/cram/`, one directory per test.
 
 ```
 <package>/test/
@@ -180,7 +180,7 @@ timestamp, trim trailing whitespace).
 - **Don't put an executable stanza in `test/dune`.** That file is for the
   alcotest runner and nothing else.
 - **No nested `dune-project`.** Dune forbids it. The dune files under
-  `test/cram/` inherit the root project context.
+  `<package>/test/cram/` inherit the root project context.
 
 ## Debugging a broken cram
 

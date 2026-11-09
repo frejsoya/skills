@@ -12,10 +12,7 @@
     "./skills/engineering/prototype",
     "./skills/engineering/review-diff",
     "./skills/engineering/tdd",
-    "./skills/engineering/to-spec",
-    "./skills/engineering/to-tickets",
     "./skills/engineering/triage",
-    "./skills/engineering/unpac",
-    "./skills/engineering/wayfinder"
+    "./skills/engineering/unpac"
   ]
 }

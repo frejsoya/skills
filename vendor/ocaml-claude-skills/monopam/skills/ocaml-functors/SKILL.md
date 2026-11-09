@@ -30,10 +30,10 @@ Always parameterize with a functor over a module type. Three parts, no others:
 3. **`module Make (B : S) : sig val v : B.t -> t end`**, the only way to build
    a `t`. `v` is the canonical constructor name.
 
-## Worked example: `irmin/lib/heap.mli`
+## Worked example: `Heap` of `cas`
 
 The content-addressable heap is parameterized over its storage backend. This is
-the shape; copy it.
+the shape, abridged; copy it.
 
 ```ocaml
 (* 1. the backend SPI: an abstract handle [t] + its operations *)

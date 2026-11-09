@@ -16,7 +16,7 @@ upstream license next to it when the license sits outside the vendored subdir.
 
 Matt Pocock's engineering and productivity workflow skills — grilling,
 domain-modeling, grill-with-docs, improve-codebase-architecture, pr, research,
-retro, wizard, handoff, teach, wait-what, writing-for-agents, and the
+retro, setup-matt-pocock-skills, to-spec, to-tickets, wayfinder, wizard, handoff, teach, wait-what, writing-for-agents, and the
 in-progress chief-of-staff and claude-handoff. The OCaml-adapted ones (tdd,
 prototype, codebase-design, diagnosing-bugs, triage, …) are *not* here: they
 are overrides in `skills/engineering/`.

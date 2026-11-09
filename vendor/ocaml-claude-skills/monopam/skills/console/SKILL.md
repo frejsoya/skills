@@ -101,7 +101,8 @@ let print_tables () =
 ```
 
 Column options: `align` (`` `Left `` default, `` `Center ``, `` `Right ``),
-`min_width`, `max_width` (truncates), `style` (applies to every cell).
+`min_width`, `max_width` (content beyond it wraps unless `overflow` says
+otherwise), `overflow`, `shrinkable`, `style` (applies to every cell).
 
 ```text
 ╭───────┬─────╮
@@ -174,7 +175,7 @@ let custom_tree =
     root_dir
 ```
 
-Guides: `Tree.unicode_guide` (default) or `Tree.ascii_guide`.
+Guides: `Guide.unicode` (default) or `Guide.ascii`, passed as `~guide`.
 
 ## Panels
 

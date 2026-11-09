@@ -12,6 +12,10 @@ an `Error` submodule (`foo/lib/error.ml` + `.mli`) that is a **facade** over
    callers look.
 4. Provide a typed builder + raiser pair for every recurring error shape.
 
+The facade is for structured formats, whose errors point into a document a
+person opens. A byte-packed codec on ocaml-wire takes no facade and no
+`nox-loc` dependency; its error shape is in [`wire.md`](wire.md#errors).
+
 ## The builder / raiser convention
 
 ```ocaml

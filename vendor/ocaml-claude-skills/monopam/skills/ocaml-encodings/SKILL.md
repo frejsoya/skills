@@ -23,6 +23,7 @@ Deep material lives beside this file, read it when you reach that layer:
 - [`reference/errors.md`](reference/errors.md): the `Foo.Error` facade over `Loc.Error`.
 - [`reference/streaming.md`](reference/streaming.md): `Codec.skip`, `Cursor.of_reader`, `Foo.Stream`, layout-preserving transform.
 - [`reference/testing.md`](reference/testing.md): spec vectors, fuzz, interop, mdx, benchmarks, browser fast-path, prior art.
+- [`reference/wire.md`](reference/wire.md): byte-packed binary codecs on ocaml-wire, which take none of the four layers: one description as the runtime, building a codec once, closing validation holes, EverParse refusals, regenerating the C, error shape.
 
 ## Public surface
 

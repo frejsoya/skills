@@ -5,7 +5,6 @@ disable-model-invocation: true
 ---
 <!-- override: adapted from mattpocock/skills skills/engineering/triage (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
 Local changes (keep these when merging upstream):
-- The label mapping comes from `AGENTS.md`/`CLAUDE.md` or `docs/agents/triage-labels.md`; no `/setup-matt-pocock-skills`.
 - AGENT-BRIEF.md: the examples use `lib/*.ml` paths, not `src/*.ts`.
 -->
 
@@ -45,7 +44,7 @@ For a PR, the same states read against the attached code: `ready-for-agent` mean
 
 Every triaged issue should carry exactly one category role and one state role. If state roles conflict, flag it and ask the maintainer before doing anything else.
 
-These are canonical role names. The actual label strings used in the issue tracker may differ. The mapping should have been provided to you (e.g. in `AGENTS.md`/`CLAUDE.md` or `docs/agents/triage-labels.md`). If not, ask the maintainer.
+These are canonical role names. The actual label strings used in the issue tracker may differ. The mapping should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
 
 State transitions: an unlabeled issue normally goes to `needs-triage` first; from there it moves to `needs-info`, `ready-for-agent`, `ready-for-human`, or `wontfix`. `needs-info` returns to `needs-triage` once the reporter replies. The maintainer can override at any time; flag transitions that look unusual and ask before proceeding.
 

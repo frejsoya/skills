@@ -17,8 +17,8 @@ edits with no commit step.
 ## Picking an item
 
 With a package argument, work only that package: its own `TODO.md`
-(`/todo ocaml-ssh` works `ocaml-ssh/TODO.md`) plus any root entries concerning
-it. The argument may name a specific item (`/todo ocaml-ssh flow control`).
+(`/todo <package>` works `<package>/TODO.md`) plus any root entries concerning
+it. The argument may name a specific item (`/todo <package> flow control`).
 
 Without an argument, list every TODO.md (`find . -name TODO.md -not -path
 '*/_build/*'`; they are gitignored, so git won't list them), skim, and pick

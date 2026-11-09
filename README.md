@@ -24,8 +24,8 @@ never hand-edited, refreshed with `make vendor-update`.
   pitched at a named audience (an age, a grade, a job role, a family member).
 
 **Ours** ([`skills/`](./skills/)): skills written here (`unpac`, `fork-package`,
-`merlint`, `review-diff`), and **overrides**: OCaml adaptations of upstream
-skills (`tdd`, `prototype`, `codebase-design`, `diagnosing-bugs`, `triage`, …)
+`merlint`), and **overrides**: adaptations of upstream
+skills (`tdd`, `review-diff`, `prototype`, `codebase-design`, `diagnosing-bugs`, `triage`, …)
 that keep tracking their upstream through
 [`sources/overrides/overrides.lock`](./sources/overrides/overrides.lock) and are
 three-way merged on every `make vendor-update`. Provenance, pins and the
@@ -74,9 +74,9 @@ Run `make` with no target for the full command list.
 
 > [!NOTE]
 > Skills like `/to-tickets`, `/to-spec`, and `/triage` expect to know your repo's
-> issue tracker and triage label vocabulary. Provide that context in your
-> `AGENTS.md`/`CLAUDE.md` (e.g. an `## Agent skills` section), or just tell the
-> agent when you run them.
+> issue tracker and triage label vocabulary. Run
+> [`/setup-matt-pocock-skills`](./vendor/mattpocock-skills/skills/engineering/setup-matt-pocock-skills/SKILL.md)
+> once per repo to configure them.
 
 ## Layout
 
@@ -122,13 +122,10 @@ Skills written here, and OCaml-adapted overrides of upstream skills.
 - **[merlint](./skills/engineering/merlint/SKILL.md)** — Run the `merlint` linter as the final review gate on any OCaml change; fix what it reports instead of silencing it.
 - **[ocaml-protocols](./skills/engineering/ocaml-protocols/SKILL.md)** — Module shape for stateful OCaml wire-protocol libraries: I/O-free state machine core, incoming/outgoing verbs, adapter sub-libraries, Alcobar fuzzing. *(override)*
 - **[prototype](./skills/engineering/prototype/SKILL.md)** — Build a throwaway prototype to flesh out a design — either a terminal app over a pure OCaml module for state/business-logic questions, or several radically different Dream + htmx UI variations toggleable from one route. *(override)*
-- **[review-diff](./skills/engineering/review-diff/SKILL.md)** — Two-axis review of the diff since a fixed point: **Standards** (does it follow the repo's coding standards, plus a Fowler smell baseline?) and **Spec** (does it faithfully implement the originating issue/spec?), run as parallel sub-agents.
+- **[review-diff](./skills/engineering/review-diff/SKILL.md)** — Two-axis review of the diff since a fixed point: **Standards** (does it follow the repo's coding standards, plus a Fowler smell baseline?) and **Spec** (does it faithfully implement the originating issue/spec?), run as parallel sub-agents. *(override)*
 - **[tdd](./skills/engineering/tdd/SKILL.md)** — Types-first test-driven development for OCaml: design the `.mli` and make illegal states unrepresentable, then red-green the residual behavior (Alcotest examples or QCheck properties) one vertical slice at a time. *(override)*
-- **[to-spec](./skills/engineering/to-spec/SKILL.md)** — Turn the current conversation into a spec and publish it to the issue tracker. *(override)*
-- **[to-tickets](./skills/engineering/to-tickets/SKILL.md)** — Break any plan, spec, or conversation into a set of tracer-bullet tickets, each declaring its blocking edges, whether as text in a local file or as native blocking links on a real tracker. *(override)*
 - **[triage](./skills/engineering/triage/SKILL.md)** — Triage issues through a state machine of triage roles. *(override)*
 - **[unpac](./skills/engineering/unpac/SKILL.md)** — Managing vendored dependencies as git branches with unpac: vendor, patch in edit sessions, merge into project worktrees, update from upstream, promote, export, push.
-- **[wayfinder](./skills/engineering/wayfinder/SKILL.md)** — Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on the issue tracker, resolved one at a time until the way to the destination is clear. *(override)*
 
 ### Productivity (local)
 
@@ -147,6 +144,10 @@ the thinking behind them.
 - **[pr](./vendor/mattpocock-skills/skills/engineering/pr/SKILL.md)** — The shape a pull request body should take: a summary as the smallest visual that makes the change clear, before/after evidence that it works, and a merge-danger call.
 - **[research](./vendor/mattpocock-skills/skills/engineering/research/SKILL.md)** — Investigate a question against high-trust primary sources and capture the findings as a cited Markdown file in the repo, run as a background agent.
 - **[retro](./vendor/mattpocock-skills/skills/engineering/retro/SKILL.md)** — Suggest improvements to the coding agent's environment (navigation, automated checks, coding standards, steering files, tooling) after a session, most severe first.
+- **[setup-matt-pocock-skills](./vendor/mattpocock-skills/skills/engineering/setup-matt-pocock-skills/SKILL.md)** — Configure a repo for the engineering skills (issue tracker, triage labels, domain doc layout). Run once per repo.
+- **[to-spec](./vendor/mattpocock-skills/skills/engineering/to-spec/SKILL.md)** — Turn the current conversation into a spec and publish it to the issue tracker.
+- **[to-tickets](./vendor/mattpocock-skills/skills/engineering/to-tickets/SKILL.md)** — Break any plan, spec, or conversation into a set of tracer-bullet tickets, each declaring its blocking edges, whether as text in a local file or as native blocking links on a real tracker.
+- **[wayfinder](./vendor/mattpocock-skills/skills/engineering/wayfinder/SKILL.md)** — Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on the issue tracker, resolved one at a time until the way to the destination is clear.
 - **[wizard](./vendor/mattpocock-skills/skills/engineering/wizard/SKILL.md)** — Generate an interactive bash wizard that walks a human through steps only they can perform: provisioning infrastructure, credentials or CI secrets, an unfamiliar third-party dashboard, a one-off migration.
 - **[chief-of-staff](./vendor/mattpocock-skills/skills/in-progress/chief-of-staff/SKILL.md)** — Pursue a long-running goal in a single session by co-ordinating subagents.
 - **[claude-handoff](./vendor/mattpocock-skills/skills/in-progress/claude-handoff/SKILL.md)** — Hand the current conversation off to a fresh background agent that picks up the work immediately, seeded with a handoff summary via `claude --bg`.
@@ -158,8 +159,7 @@ the thinking behind them.
 - **[wait-what](./vendor/mattpocock-skills/skills/productivity/wait-what/SKILL.md)** — Fire this the moment a message doesn't land. The agent re-pitches it with the context you're missing, in plain English, using your `GLOSSARY.md` vocabulary.
 - **[writing-for-agents](./vendor/mattpocock-skills/skills/productivity/writing-for-agents/SKILL.md)** — Writing documents for agents: skills, AGENTS.md/CLAUDE.md, and any doc an agent reaches by a pointer.
 
-Not vendored: `ask-matt` and `setup-matt-pocock-skills` (they route to and
-configure upstream's own set), `code-review` (`review-diff` owns review here),
+Not vendored: `ask-matt` (it routes to upstream's own set), `code-review` (overridden as `review-diff`),
 and the `misc` and unfinished `in-progress` skills.
 
 ### Vendored OCaml sets

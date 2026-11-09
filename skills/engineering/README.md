@@ -13,14 +13,11 @@ Skills I use daily for code work.
 - **[prototype](./prototype/SKILL.md)** — Build a throwaway prototype to flesh out a design — either a runnable terminal app for state/business-logic questions, or several radically different UI variations toggleable from one route.
 - **[review-diff](./review-diff/SKILL.md)** — Two-axis review of the diff since a fixed point: **Standards** (does it follow the repo's coding standards, plus a Fowler smell baseline?) and **Spec** (does it faithfully implement the originating issue/spec?), run as parallel sub-agents.
 - **[tdd](./tdd/SKILL.md)** — Types-first test-driven development for OCaml: design the `.mli` and make illegal states unrepresentable, then red-green-refactor the residual behavior (Alcotest examples or QCheck properties) one vertical slice at a time.
-- **[to-spec](./to-spec/SKILL.md)** — Turn the current conversation into a spec and publish it to the issue tracker.
-- **[to-tickets](./to-tickets/SKILL.md)** — Break any plan, spec, or conversation into a set of tracer-bullet tickets, each declaring its blocking edges, whether as text in a local file or as native blocking links on a real tracker.
 - **[triage](./triage/SKILL.md)** — Triage issues through a state machine of triage roles.
 - **[unpac](./unpac/SKILL.md)** — Managing vendored dependencies as git branches with unpac: vendor, patch in edit sessions, merge into project worktrees, update from upstream, promote, export, push.
-- **[wayfinder](./wayfinder/SKILL.md)** — Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on the issue tracker, resolved one at a time until the way to the destination is clear.
 
 Skills marked *(override)* in the top-level README are OCaml adaptations of
 `mattpocock/skills` or `ocaml-claude-skills` skills; they track upstream via
 `sources/overrides/overrides.lock`. The verbatim upstream engineering skills
 (domain-modeling, grill-with-docs, improve-codebase-architecture, pr, research,
-retro, wizard) are at `vendor/mattpocock-skills/skills/engineering/`.
+retro, setup-matt-pocock-skills, to-spec, to-tickets, wayfinder, wizard) are at `vendor/mattpocock-skills/skills/engineering/`.

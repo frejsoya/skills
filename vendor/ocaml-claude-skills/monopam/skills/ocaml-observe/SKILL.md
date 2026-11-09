@@ -6,10 +6,14 @@ description: "The observe library: cmdliner terms and one-call setup for CLI log
 # observe
 
 `observe` provides cmdliner terms for logging configuration with RUST_LOG-style
-syntax. Depend on `observe`; add `json-logs` too if you want `--json` support.
+syntax. Depend on `observe`: it brings `json-logs`, the default `--json`
+reporter, with it. A tool that only logs and wants the smallest closure links
+`observe.core` and uses `Observe_core` instead.
 
 `Observe.setup "myapp"` is a `Term.t` you apply alongside your own arguments; it
-installs the reporter as a side effect of evaluation.
+installs the reporter as a side effect of evaluation, and starts the capture
+that `MEMTRACE`, `TRACEPARENT` and `OBS_COLLECTOR` ask for, which is how
+`obs run -- myapp` observes the tool.
 
 ```ocaml
 open Cmdliner
@@ -105,6 +109,16 @@ let _ = Observe.setup ~json_reporter:(Some my_reporter) "myapp"
 
 (* Disable --json flag entirely *)
 let _ = Observe.setup ~json_reporter:None "myapp"
+```
+
+## Capture without the term
+
+A program whose command line declares its own verbosity, colour or JSON flags
+cannot take `Observe.setup` beside them. It calls `Observe.capture "myapp"` at
+startup instead: the same capture, and no flag.
+
+```ocaml
+let () = Observe.capture "myapp"
 ```
 
 ## Tests

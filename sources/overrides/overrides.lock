@@ -9,15 +9,13 @@
 # `<!-- override: ... -->` comment listing the local changes to keep.
 #
 # override                            vendor                   upstream dir (in subdir)       base
-skills/engineering/codebase-design    mattpocock-skills        engineering/codebase-design    49dd158d1076134a641b33efb035946536778336
-skills/engineering/diagnosing-bugs    mattpocock-skills        engineering/diagnosing-bugs    49dd158d1076134a641b33efb035946536778336
-skills/engineering/implement          mattpocock-skills        engineering/implement          49dd158d1076134a641b33efb035946536778336
-skills/engineering/implement-spec     mattpocock-skills        engineering/implement-spec     49dd158d1076134a641b33efb035946536778336
-skills/engineering/prototype          mattpocock-skills        engineering/prototype          49dd158d1076134a641b33efb035946536778336
-skills/engineering/tdd                mattpocock-skills        engineering/tdd                49dd158d1076134a641b33efb035946536778336
-skills/engineering/to-spec            mattpocock-skills        engineering/to-spec            49dd158d1076134a641b33efb035946536778336
-skills/engineering/to-tickets         mattpocock-skills        engineering/to-tickets         49dd158d1076134a641b33efb035946536778336
-skills/engineering/triage             mattpocock-skills        engineering/triage             49dd158d1076134a641b33efb035946536778336
-skills/engineering/wayfinder          mattpocock-skills        engineering/wayfinder          49dd158d1076134a641b33efb035946536778336
-skills/engineering/ocaml-protocols    ocaml-claude-skills      skills/ocaml-protocols         c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460
-skills/engineering/init-ocaml         ocaml-claude-skills      skills/init-ocaml              c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460
+skills/engineering/codebase-design    mattpocock-skills        engineering/codebase-design    5beb35b040e3de97e54fa9e386d7e42d15c295c2
+skills/engineering/diagnosing-bugs    mattpocock-skills        engineering/diagnosing-bugs    5beb35b040e3de97e54fa9e386d7e42d15c295c2
+skills/engineering/implement          mattpocock-skills        engineering/implement          5beb35b040e3de97e54fa9e386d7e42d15c295c2
+skills/engineering/implement-spec     mattpocock-skills        engineering/implement-spec     5beb35b040e3de97e54fa9e386d7e42d15c295c2
+skills/engineering/review-diff        mattpocock-skills        engineering/code-review        5beb35b040e3de97e54fa9e386d7e42d15c295c2
+skills/engineering/prototype          mattpocock-skills        engineering/prototype          5beb35b040e3de97e54fa9e386d7e42d15c295c2
+skills/engineering/tdd                mattpocock-skills        engineering/tdd                5beb35b040e3de97e54fa9e386d7e42d15c295c2
+skills/engineering/triage             mattpocock-skills        engineering/triage             5beb35b040e3de97e54fa9e386d7e42d15c295c2
+skills/engineering/ocaml-protocols    ocaml-claude-skills      skills/ocaml-protocols         cec81ee5cad33fd048636c40c4e24a1c4ea2abff
+skills/engineering/init-ocaml         ocaml-claude-skills      skills/init-ocaml              cec81ee5cad33fd048636c40c4e24a1c4ea2abff

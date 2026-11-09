@@ -62,10 +62,12 @@ packages:
   - name: merlint                       # formula name and installed binary name
     target: merlint/bin/main.exe        # dune executable, relative to the root
     description: "Opinionated OCaml linter powered by Merlin"
+    requires: {}                        # the platform it needs; {} for any
 ```
 
 `target` is the path to the dune executable relative to the monorepo root;
-bottler looks for the built binary at `_build/default/{target}`.
+bottler looks for the built binary at `_build/default/{target}`. `requires`
+is required: a package without it fails the config load.
 
 Optional per-package fields:
 
@@ -75,7 +77,6 @@ Optional per-package fields:
 | `head_deps` | `[]` | Runtime deps for `--HEAD` builds |
 | `conflicts_with` | `[]` | Homebrew formulas installing a clashing binary |
 | `entitlements` | `[]` | macOS entitlement keys to ad-hoc codesign with at install time |
-| `requires` | unset | Platform the binary needs: `os` (`macos`/`linux`) and `arch` (`arm64`/`x86_64`) |
 | `version_scheme` | unset | Raise when a release's version string sorts below the one it replaces |
 | `former_names` | `[]` | Names the package published under before, redirected to this one |
 

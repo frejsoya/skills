@@ -5,13 +5,12 @@ disable-model-invocation: true
 ---
 <!-- override: adapted from mattpocock/skills skills/engineering/implement-spec (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
 Local changes (keep these when merging upstream):
-- The issue tracker comes from `AGENTS.md`/`CLAUDE.md`; no `/setup-matt-pocock-skills`.
 - Close out with `review-diff`, not `code-review` (which is not vendored here).
 -->
 
 You have been provided a spec. This spec should have tickets associated with it, describing how to implement the spec.
 
-The issue tracker should have been provided to you (e.g. in `AGENTS.md`/`CLAUDE.md`). If not, ask the maintainer.
+The issue tracker should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
 
 The goal is the entire spec implemented on a single **integration branch**, with every ticket resolved the way the issue tracker closes work.
 

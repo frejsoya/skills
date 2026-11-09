@@ -4,7 +4,7 @@ Four layers, each catching a different failure mode.
 
 ## A. Spec conformance vectors
 
-Vendor them in `test/vectors/` with a `README.md` citing URL + commit SHA.
+Vendor them in `<package>/test/vectors/` with a `README.md` citing URL + commit SHA.
 
 | Format | Vectors |
 |--------|---------|

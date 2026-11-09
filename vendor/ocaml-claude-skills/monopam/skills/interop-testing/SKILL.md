@@ -121,8 +121,9 @@ Parent `dune`: the test stanza plus a thin alias deferring to `traces/`:
 
 ## The generator wrapper
 
-`scripts/generate.sh` is a tiny dispatcher: check the toolchain is present, hand
-off to the language-native build, write to the output directory in `$1`
+`<package>/test/interop/<tool>/scripts/generate.sh` is a dispatcher: check
+the toolchain is present, hand off to the language-native build, write to the
+output directory in `$1`
 (defaulting to `../traces` for a direct `bash generate.sh`). The binary itself
 uses **only** the upstream's public API.
 
@@ -280,9 +281,9 @@ and un-skip the traces.
 
 ## Adding a new interop test
 
-1. Create `test/interop/<tool>/` with the layout above.
-2. Write `scripts/generate.sh` plus the language-native side. It takes the
-   output dir as `$1` and keeps its toolchain cache build-local.
+1. Create `<package>/test/interop/<tool>/` with the layout above.
+2. Write `<tool>/scripts/generate.sh` plus the language-native side. It takes
+   the output dir as `$1` and keeps its toolchain cache build-local.
 3. The generator uses only the upstream's public API. If you can't express the
    test that way, drop it.
 4. Pin the upstream version in the package manifest. No `$FOO_HOME`.

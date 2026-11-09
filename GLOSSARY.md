@@ -1,6 +1,6 @@
 # Frej Soya Skills
 
-A collection of agent skills (slash commands and behaviors) loaded by Claude Code. Skills are organized into buckets and rely on per-repo configuration (issue tracker, triage labels, domain doc layout) provided in the consuming repo's `AGENTS.md`/`CLAUDE.md`.
+A collection of agent skills (slash commands and behaviors) loaded by Claude Code. Skills are organized into buckets and rely on per-repo configuration (issue tracker, triage labels, domain doc layout) written into the consuming repo by `setup-matt-pocock-skills`.
 
 ## Language
 

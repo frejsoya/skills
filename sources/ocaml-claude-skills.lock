@@ -3,9 +3,9 @@ subdir:   plugins/monopam
 policy:   vendored verbatim (pinned; never hand-edited)
 location: vendor/ocaml-claude-skills/monopam/
 update:   make vendor-update
-commit:   c3c436bb9030bff7aef8c6e8d7f2bb2bf88ab460
-date:     2026-10-15 07:37:44 +0200
-subject:  claude-skills: the requests skill examples pass the monotonic clock
+commit:   cec81ee5cad33fd048636c40c4e24a1c4ea2abff
+date:     2026-10-19 17:31:16 +0200
+subject:  claude-skills: write generic layouts with a <package> placeholder
 exclude:  skills/monopam
 exclude:  skills/concurrent-claude
 exclude:  skills/fork-package

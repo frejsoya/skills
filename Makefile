@@ -160,11 +160,11 @@ VENDORS := mattpocock-skills ocaml-claude-marketplace ocaml-claude-skills eli5
 #   - misc, deprecated, and the unfinished in-progress skills (loop-me,
 #     setup-ts-deep-modules, writing-*): not promoted upstream, TS-specific.
 #     chief-of-staff and claude-handoff ARE kept from in-progress.
-#   - ask-matt, setup-matt-pocock-skills: route to / configure upstream's own
-#     set; here the tracker and label context lives in AGENTS.md.
-#   - code-review: review-diff (skills/engineering) owns review here.
+#   - ask-matt: routes questions to upstream's own set.
+#   - code-review: overridden as skills/engineering/review-diff, renamed so it
+#     does not collide with Claude Code's built-in /code-review.
 #   - codebase-design diagnosing-bugs implement implement-spec prototype tdd
-#     to-spec to-tickets triage wayfinder: OCaml-adapted OVERRIDES living in
+#     triage: OCaml-adapted OVERRIDES living in
 #     skills/engineering/, tracking upstream via sources/overrides/overrides.lock.
 UPSTREAM_URL_mattpocock-skills := https://github.com/mattpocock/skills.git
 UPSTREAM_SUB_mattpocock-skills := skills
@@ -172,10 +172,9 @@ VENDOR_LICENSE_mattpocock-skills := LICENSE
 VENDOR_EXCLUDE_mattpocock-skills := misc deprecated \
   in-progress/loop-me in-progress/setup-ts-deep-modules in-progress/writing-beats \
   in-progress/writing-fragments in-progress/writing-shape \
-  engineering/ask-matt engineering/setup-matt-pocock-skills engineering/code-review \
+  engineering/ask-matt engineering/code-review \
   engineering/codebase-design engineering/diagnosing-bugs engineering/implement \
-  engineering/implement-spec engineering/prototype engineering/tdd engineering/to-spec \
-  engineering/to-tickets engineering/triage engineering/wayfinder
+  engineering/implement-spec engineering/prototype engineering/tdd engineering/triage
 
 UPSTREAM_URL_ocaml-claude-marketplace := https://github.com/avsm/ocaml-claude-marketplace.git
 UPSTREAM_SUB_ocaml-claude-marketplace := plugins/ocaml-dev

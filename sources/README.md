@@ -41,8 +41,8 @@ All four are **vendored verbatim** — never hand-edited.
     with it. `eli5-workspace/` is dropped via `VENDOR_EXCLUDE_eli5`: it is
     upstream's own eval harness, and this repo already has `evals/`.
 
-- **`skills/` is ours.** Local skills (`unpac`, `fork-package`, `merlint`,
-  `review-diff`) and overrides. We edit these freely; `make check` lints them.
+- **`skills/` is ours.** Local skills (`unpac`, `fork-package`, `merlint`)
+  and overrides. We edit these freely; `make check` lints them.
 
 ## Overrides
 
@@ -73,7 +73,9 @@ Current overrides:
 
 - From `mattpocock/skills`, adapted to OCaml + dune: `codebase-design`,
   `diagnosing-bugs`, `implement`, `implement-spec`, `prototype`, `tdd`,
-  `to-spec`, `to-tickets`, `triage`, `wayfinder`.
+  `triage`.
+- From `mattpocock/skills`, renamed only: `review-diff` (upstream `code-review`;
+  the name avoids Claude Code's built-in `/code-review`).
 - From `ocaml-claude-skills`, adapted to the unpac workflow: `ocaml-protocols`,
   `init-ocaml`.
 
@@ -86,10 +88,9 @@ directory, not every `foo` in the tree.
 
 `mattpocock-skills` drops `misc`, `deprecated` and the unfinished
 `in-progress` skills (not promoted upstream; `chief-of-staff` and
-`claude-handoff` are kept from `in-progress`), `ask-matt` and
-`setup-matt-pocock-skills` (they route to and configure upstream's own set; the
-tracker and label context lives in `AGENTS.md` here), `code-review`
-(`review-diff` owns review here), and the ten skills that are overrides.
+`claude-handoff` are kept from `in-progress`), `ask-matt` (it
+routes to upstream's own set), and the eight
+skills that are overrides (`code-review` is overridden as `review-diff`).
 
 `ocaml-claude-marketplace` drops `fuzz` (the house fuzz library is alcobar,
 whose skill comes from `ocaml-claude-skills`), `project-setup` (`init-ocaml`

@@ -2,6 +2,10 @@
 name: review-diff
 description: "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \"review since X\"."
 ---
+<!-- override: adapted from mattpocock/skills skills/engineering/code-review (MIT, Copyright (c) 2026 Matt Pocock). Tracks upstream via sources/overrides/overrides.lock.
+Local changes (keep these when merging upstream):
+- Named `review-diff`, not `code-review`, so it does not collide with Claude Code's built-in `/code-review`.
+-->
 
 Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 
@@ -10,7 +14,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 
 Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
 
-The issue tracker should have been provided to you (e.g. in `AGENTS.md`/`CLAUDE.md`). If not, ask the maintainer.
+The issue tracker should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
 
 ## Process
 

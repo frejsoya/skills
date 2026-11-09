@@ -18,7 +18,7 @@ trigger) — fix the description, not the case. `—` means no skill should fire
 | 8 | "Break this plan into issues we can pick up." | to-tickets |
 | 9 | "Triage the incoming bug reports." | triage |
 | 10 | "Let me play with this state machine before I commit to it." | prototype |
-| 11 | "Set up the issue tracker / project commands for these skills." | — (no skill; configured in AGENTS.md/CLAUDE.md) |
+| 11 | "Set up the issue tracker / project commands for these skills." | setup-matt-pocock-skills |
 | 13 | "Stress-test my design — grill me on it." | grill-me |
 | 14 | "Compact this session so another agent can continue." | handoff |
 | 15 | "Write a new skill for working with Mirage." | writing-for-agents |

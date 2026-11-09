@@ -34,7 +34,7 @@ One `fuzz_<module>.ml` per library module, named after the module it tests.
 
 ## The three files
 
-**`fuzz/dune`**, one `(executable ...)`, plus a `runtest` rule for the property
+**`<package>/fuzz/dune`**, one `(executable ...)`, plus a `runtest` rule for the property
 run and a `fuzz` rule for the AFL campaign, gated on the `afl` profile so they
 never both fire:
 
@@ -65,13 +65,13 @@ never both fire:
 In a multi-package dune project both rules need `(package foo)` so dune knows
 which package owns them; the executable itself stays private (E727).
 
-**`fuzz/fuzz.ml`**; the runner does nothing but collect suites:
+**`<package>/fuzz/fuzz.ml`**; the runner does nothing but collect suites:
 
 ```ocaml
 let () = Alcobar.run "foo" [ Fuzz_foo.suite; Fuzz_bar.suite ]
 ```
 
-**`fuzz/fuzz_foo.mli`**: exactly one export:
+**`<package>/fuzz/fuzz_foo.mli`**: exactly one export:
 
 ```ocaml
 (** Fuzz tests for {!Foo}. *)
@@ -80,7 +80,7 @@ val suite : string * Alcobar.test_case list
 (** Test suite. *)
 ```
 
-**`fuzz/fuzz_foo.ml`**: test functions at the top, one `suite` at the bottom.
+**`<package>/fuzz/fuzz_foo.ml`**: test functions at the top, one `suite` at the bottom.
 The suite's name must match the filename: `fuzz_foo.ml` declares
 `("foo", [...])` (E725).
 

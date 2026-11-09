@@ -270,6 +270,11 @@ The error appears as a diff against `.mdx/<file>.corrected`:
 | `Unbound value bar` | The example referenced an undeclared binding; bind it |
 | `Eio_unix.Stdenv ... abstract because no corresponding cmi` | Add `eio.unix` |
 
+A typing test written red by hand expects an error block before the code
+exists. Take its text from the raw `ocaml` toplevel but its columns from a
+block MDX already printed in the same file: the toplevel counts characters
+from 0 and MDX from 1, so copied spans are off by one on every block.
+
 ## Anti-patterns
 
 - **Skipping a block.** `<!-- $MDX skip -->` on an OCaml example defeats the

@@ -3,9 +3,9 @@ subdir:   skills
 policy:   vendored verbatim (pinned; never hand-edited)
 location: vendor/mattpocock-skills/skills/
 update:   make vendor-update
-commit:   49dd158d1076134a641b33efb035946536778336
-date:     2026-10-09 11:56:49 +0100
-subject:  wizard: template fixes (#1220, #1142, #1081, #1041, #1003) (#1237)
+commit:   5beb35b040e3de97e54fa9e386d7e42d15c295c2
+date:     2026-10-19 16:51:40 +0100
+subject:  chief-of-staff: keep memory in a dated, commit-cited wiki (#1304)
 exclude:  misc
 exclude:  deprecated
 exclude:  in-progress/loop-me
@@ -14,7 +14,6 @@ exclude:  in-progress/writing-beats
 exclude:  in-progress/writing-fragments
 exclude:  in-progress/writing-shape
 exclude:  engineering/ask-matt
-exclude:  engineering/setup-matt-pocock-skills
 exclude:  engineering/code-review
 exclude:  engineering/codebase-design
 exclude:  engineering/diagnosing-bugs
@@ -22,8 +21,5 @@ exclude:  engineering/implement
 exclude:  engineering/implement-spec
 exclude:  engineering/prototype
 exclude:  engineering/tdd
-exclude:  engineering/to-spec
-exclude:  engineering/to-tickets
 exclude:  engineering/triage
-exclude:  engineering/wayfinder
 license:  LICENSE
