@@ -139,7 +139,9 @@ case "$CMD" in
       for entry in "$tdir"/*; do
         [ -e "$entry" ] || [ -L "$entry" ] || continue
         name="$(basename "$entry")"
-        case "$name" in .skills-backup-*|README.md) continue;; esac
+        # synced/: Claude Code's copy of the account's and organisation's skills
+        # (~/.claude/skills/synced, in the store when ~/.claude/skills links to it).
+        case "$name" in .skills-backup-*|README.md|synced) continue;; esac
         printf '%s\n' "$valid" | grep -qx "$name" && continue   # still a real skill
         if [ -L "$entry" ]; then
           case "$(readlink "$entry")" in
