@@ -22,4 +22,5 @@ exclude:  engineering/implement-spec
 exclude:  engineering/prototype
 exclude:  engineering/tdd
 exclude:  engineering/triage
+exclude:  engineering/pr
 license:  LICENSE

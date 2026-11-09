@@ -111,7 +111,7 @@ instead of upstream main: `make vendor-update-<name> REF=<sha>`.
 
 ### Engineering (local)
 
-Skills written here, and OCaml-adapted overrides of upstream skills.
+Skills written here, and overrides of upstream skills.
 
 - **[codebase-design](./skills/engineering/codebase-design/SKILL.md)** — Shared discipline and vocabulary for designing deep modules: small `.mli`, clean seams, testable through the interface. *(override)*
 - **[diagnosing-bugs](./skills/engineering/diagnosing-bugs/SKILL.md)** — Disciplined diagnosis loop for hard bugs and performance regressions: build a feedback loop that goes red on this bug → minimise → hypothesise → instrument → fix → regression-test. *(override)*
@@ -121,6 +121,7 @@ Skills written here, and OCaml-adapted overrides of upstream skills.
 - **[init-ocaml](./skills/engineering/init-ocaml/SKILL.md)** — Create a new OCaml package with the house layout: dune-project metadata, lib/test/fuzz structure, standard dotfiles, and pre-commit hooks. *(override)*
 - **[merlint](./skills/engineering/merlint/SKILL.md)** — Run the `merlint` linter as the final review gate on any OCaml change; fix what it reports instead of silencing it.
 - **[ocaml-protocols](./skills/engineering/ocaml-protocols/SKILL.md)** — Module shape for stateful OCaml wire-protocol libraries: I/O-free state machine core, incoming/outgoing verbs, adapter sub-libraries, Alcobar fuzzing. *(override)*
+- **[pr](./skills/engineering/pr/SKILL.md)** — The shape a pull request body should take: a summary as the smallest visual that makes the change clear, before/after evidence that it works (a terminal recording when the change shows in a terminal), and a merge-danger call. *(override)*
 - **[prototype](./skills/engineering/prototype/SKILL.md)** — Build a throwaway prototype to flesh out a design — either a terminal app over a pure OCaml module for state/business-logic questions, or several radically different Dream + htmx UI variations toggleable from one route. *(override)*
 - **[review-diff](./skills/engineering/review-diff/SKILL.md)** — Two-axis review of the diff since a fixed point: **Standards** (does it follow the repo's coding standards, plus a Fowler smell baseline?) and **Spec** (does it faithfully implement the originating issue/spec?), run as parallel sub-agents. *(override)*
 - **[tdd](./skills/engineering/tdd/SKILL.md)** — Types-first test-driven development for OCaml: design the `.mli` and make illegal states unrepresentable, then red-green the residual behavior (Alcotest examples or QCheck properties) one vertical slice at a time. *(override)*
@@ -141,7 +142,6 @@ the thinking behind them.
 - **[domain-modeling](./vendor/mattpocock-skills/skills/engineering/domain-modeling/SKILL.md)** — Actively build and sharpen a project's domain model by challenging terms, stress-testing with scenarios, and updating `GLOSSARY.md` and ADRs inline.
 - **[grill-with-docs](./vendor/mattpocock-skills/skills/engineering/grill-with-docs/SKILL.md)** — Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates `GLOSSARY.md` and ADRs inline.
 - **[improve-codebase-architecture](./vendor/mattpocock-skills/skills/engineering/improve-codebase-architecture/SKILL.md)** — Find deepening opportunities in a codebase, informed by the domain language in `GLOSSARY.md` and the decisions in `docs/adr/`.
-- **[pr](./vendor/mattpocock-skills/skills/engineering/pr/SKILL.md)** — The shape a pull request body should take: a summary as the smallest visual that makes the change clear, before/after evidence that it works, and a merge-danger call.
 - **[research](./vendor/mattpocock-skills/skills/engineering/research/SKILL.md)** — Investigate a question against high-trust primary sources and capture the findings as a cited Markdown file in the repo, run as a background agent.
 - **[retro](./vendor/mattpocock-skills/skills/engineering/retro/SKILL.md)** — Suggest improvements to the coding agent's environment (navigation, automated checks, coding standards, steering files, tooling) after a session, most severe first.
 - **[setup-matt-pocock-skills](./vendor/mattpocock-skills/skills/engineering/setup-matt-pocock-skills/SKILL.md)** — Configure a repo for the engineering skills (issue tracker, triage labels, domain doc layout). Run once per repo.

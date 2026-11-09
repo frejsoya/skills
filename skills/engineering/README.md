@@ -10,14 +10,16 @@ Skills I use daily for code work.
 - **[init-ocaml](./init-ocaml/SKILL.md)** — Create a new OCaml package with the house layout: dune-project metadata, lib/test/fuzz structure, standard dotfiles, and pre-commit hooks.
 - **[merlint](./merlint/SKILL.md)** — Run the `merlint` linter as the final review gate on any OCaml change; fix what it reports instead of silencing it.
 - **[ocaml-protocols](./ocaml-protocols/SKILL.md)** — Module shape for stateful OCaml wire-protocol libraries: I/O-free state machine core, incoming/outgoing verbs, adapter sub-libraries, Alcobar fuzzing.
+- **[pr](./pr/SKILL.md)** — The shape a pull request body should take: a summary as the smallest visual that makes the change clear, before/after evidence that it works (a terminal recording when the change shows in a terminal), and a merge-danger call.
 - **[prototype](./prototype/SKILL.md)** — Build a throwaway prototype to flesh out a design — either a runnable terminal app for state/business-logic questions, or several radically different UI variations toggleable from one route.
 - **[review-diff](./review-diff/SKILL.md)** — Two-axis review of the diff since a fixed point: **Standards** (does it follow the repo's coding standards, plus a Fowler smell baseline?) and **Spec** (does it faithfully implement the originating issue/spec?), run as parallel sub-agents.
 - **[tdd](./tdd/SKILL.md)** — Types-first test-driven development for OCaml: design the `.mli` and make illegal states unrepresentable, then red-green-refactor the residual behavior (Alcotest examples or QCheck properties) one vertical slice at a time.
 - **[triage](./triage/SKILL.md)** — Triage issues through a state machine of triage roles.
 - **[unpac](./unpac/SKILL.md)** — Managing vendored dependencies as git branches with unpac: vendor, patch in edit sessions, merge into project worktrees, update from upstream, promote, export, push.
 
-Skills marked *(override)* in the top-level README are OCaml adaptations of
+Skills marked *(override)* in the top-level README are adaptations of
 `mattpocock/skills` or `ocaml-claude-skills` skills; they track upstream via
 `sources/overrides/overrides.lock`. The verbatim upstream engineering skills
-(domain-modeling, grill-with-docs, improve-codebase-architecture, pr, research,
-retro, setup-matt-pocock-skills, to-spec, to-tickets, wayfinder, wizard) are at `vendor/mattpocock-skills/skills/engineering/`.
+(domain-modeling, grill-with-docs, improve-codebase-architecture, research,
+retro, setup-matt-pocock-skills, to-spec, to-tickets, wayfinder, wizard) are at
+`vendor/mattpocock-skills/skills/engineering/`.

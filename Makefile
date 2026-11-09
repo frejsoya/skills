@@ -163,6 +163,8 @@ VENDORS := mattpocock-skills ocaml-claude-marketplace ocaml-claude-skills eli5
 #   - ask-matt: routes questions to upstream's own set.
 #   - code-review: overridden as skills/engineering/review-diff, renamed so it
 #     does not collide with Claude Code's built-in /code-review.
+#   - pr: OVERRIDE in skills/engineering/, adding terminal recordings as
+#     evidence; tracks upstream via sources/overrides/overrides.lock.
 #   - codebase-design diagnosing-bugs implement implement-spec prototype tdd
 #     triage: OCaml-adapted OVERRIDES living in
 #     skills/engineering/, tracking upstream via sources/overrides/overrides.lock.
@@ -174,7 +176,8 @@ VENDOR_EXCLUDE_mattpocock-skills := misc deprecated \
   in-progress/writing-fragments in-progress/writing-shape \
   engineering/ask-matt engineering/code-review \
   engineering/codebase-design engineering/diagnosing-bugs engineering/implement \
-  engineering/implement-spec engineering/prototype engineering/tdd engineering/triage
+  engineering/implement-spec engineering/prototype engineering/tdd engineering/triage \
+  engineering/pr
 
 UPSTREAM_URL_ocaml-claude-marketplace := https://github.com/avsm/ocaml-claude-marketplace.git
 UPSTREAM_SUB_ocaml-claude-marketplace := plugins/ocaml-dev

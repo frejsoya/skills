@@ -9,6 +9,7 @@
     "./skills/engineering/init-ocaml",
     "./skills/engineering/merlint",
     "./skills/engineering/ocaml-protocols",
+    "./skills/engineering/pr",
     "./skills/engineering/prototype",
     "./skills/engineering/review-diff",
     "./skills/engineering/tdd",

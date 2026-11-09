@@ -17,5 +17,6 @@ skills/engineering/review-diff        mattpocock-skills        engineering/code-
 skills/engineering/prototype          mattpocock-skills        engineering/prototype          5beb35b040e3de97e54fa9e386d7e42d15c295c2
 skills/engineering/tdd                mattpocock-skills        engineering/tdd                5beb35b040e3de97e54fa9e386d7e42d15c295c2
 skills/engineering/triage             mattpocock-skills        engineering/triage             5beb35b040e3de97e54fa9e386d7e42d15c295c2
+skills/engineering/pr                 mattpocock-skills        engineering/pr                 5beb35b040e3de97e54fa9e386d7e42d15c295c2
 skills/engineering/ocaml-protocols    ocaml-claude-skills      skills/ocaml-protocols         cec81ee5cad33fd048636c40c4e24a1c4ea2abff
 skills/engineering/init-ocaml         ocaml-claude-skills      skills/init-ocaml              cec81ee5cad33fd048636c40c4e24a1c4ea2abff

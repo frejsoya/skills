@@ -76,6 +76,7 @@ Current overrides:
   `triage`.
 - From `mattpocock/skills`, renamed only: `review-diff` (upstream `code-review`;
   the name avoids Claude Code's built-in `/code-review`).
+- From `mattpocock/skills`, extended: `pr` (terminal recordings as evidence).
 - From `ocaml-claude-skills`, adapted to the unpac workflow: `ocaml-protocols`,
   `init-ocaml`.
 
